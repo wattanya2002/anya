@@ -15,7 +15,8 @@
     "test": "node --experimental-strip-types --test tests/unit/*.test.ts",
     "test:db": "node --experimental-strip-types --test tests/db/*.test.ts",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
-    "owner:create": "node --env-file-if-exists=.env.local scripts/create-owner.mjs"
+    "owner:create": "node --env-file-if-exists=.env.local scripts/create-owner.mjs",
+    "vercel-build": "node scripts/migrate.mjs && next build"
   },
   "dependencies": {
     "@fontsource/noto-sans-thai-looped": "^5.3.0",
