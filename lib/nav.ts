@@ -20,5 +20,4 @@ export const NAV: Record<NavKey, NavItem> = {
 };
 
 export const RAIL: NavKey[] = ["home", "dashboard", "marketing", "content", "promotion", "customers", "courts", "inventory", "reports", "settings"];
-export const SHORTCUTS: NavKey[] = ["dashboard", "marketing", "content", "promotion", "customers", "social", "inventory", "reports"];
 export const BOTTOM: NavKey[] = ["home", "marketing", "content", "inventory"];

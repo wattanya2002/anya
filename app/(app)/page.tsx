@@ -1,20 +1,15 @@
 import Link from "next/link";
-import { Calendar, ChevronRight, Coins, Heart, LayoutGrid, Megaphone, SquareCheck, Star, Tag, Users } from "lucide-react";
+import { Calendar, ChevronRight, Coins, Heart, Megaphone, SquareCheck, Star, Tag, Users } from "lucide-react";
 import { requireUser, can } from "@/lib/auth";
 import { loadDashboard, type Kpi } from "@/lib/dashboard";
 import { parseRange } from "@/lib/dates";
 import { formatBahtFromSatang, formatInt, formatPct, formatThaiDateTime } from "@/lib/format";
-import { NAV, SHORTCUTS } from "@/lib/nav";
-import { NavIcon } from "@/components/nav-icon";
+import { NAV } from "@/lib/nav";
 import { Delta } from "@/components/delta";
 import { Donut, Sparkline, sliceColor } from "@/components/charts";
 import { RangeSelect } from "@/components/range-select";
 import { TaskList, AddTaskButton } from "@/components/tasks-today";
 
-const TILE_TONE: Record<string, string> = {
-  dashboard: "tone-pink", marketing: "tone-purple", content: "tone-green", promotion: "tone-amber",
-  customers: "tone-pink", social: "tone-pink", inventory: "tone-blue", reports: "tone-pink",
-};
 const SOURCE_TH: Record<string, string> = { manual: "กรอกเอง", import: "ไฟล์นำเข้า", api: "API" };
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -64,9 +59,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <KpiCard icon={<Heart />} tone="tone-pink" label="อัตราการกลับมาใช้บริการ" kpi={d.returnRate} fmt={(n) => formatPct(n)} sub={compare} />
       </section>
 
-      <div className="dash">
-      <section className="panels" aria-label="สรุปผล">
-        <article className="card panel">
+      <section className="dash" aria-label="สรุปผล">
+        <article className="card panel panel-mk">
           <PanelHead icon={<Megaphone />} title="ผลการตลาด (Marketing)" sub="ภาพรวมแคมเปญและช่องทางการตลาด" href={NAV.marketing.href} />
           <div className="card-body mk-body">
           {d.marketing === "forbidden" ? (
@@ -113,7 +107,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </div>
         </article>
 
-        <article className="card panel">
+        <article className="card panel panel-ct">
           <PanelHead icon={<Calendar />} title="สรุปการจองสนาม" sub="จำนวนการจองตามประเภทสนาม" href={NAV.courts.href} />
           <div className="card-body">
           {!d.courts.configured ? (
@@ -155,9 +149,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <TaskList tasks={d.tasks} canManage={can(user, "tasks.manage")} />
           </div>
         </article>
-      </section>
-
-      <section className="lower">
         <article className="card panel panel-promo">
           <PanelHead icon={<Tag />} title="สรุปโปรโมชั่น" sub="ประสิทธิภาพของโปรโมชั่นที่กำลังใช้งาน" href={NAV.promotion.href} />
           <div className="card-body">
@@ -192,26 +183,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           )}
           </div>
         </article>
-        <article className="card shortcuts" aria-labelledby="shortcuts-title">
-          <div className="panel-head">
-            <span className="badge-icon tone-pink" aria-hidden="true"><LayoutGrid /></span>
-            <h2 className="panel-title" id="shortcuts-title">ทางลัดไปยังโมดูล</h2>
-            <span className="shortcuts-note">จัดการทุกส่วนของ Wonder Courts</span>
-          </div>
-          <nav className="tiles card-body" aria-label="ทางลัดไปยังโมดูล">
-            {SHORTCUTS.map((k) => (
-              <Link key={k} href={NAV[k].href} className="tile">
-                <span className={`badge-icon ${TILE_TONE[k]}`} aria-hidden="true"><NavIcon k={k} /></span>
-                <div>
-                  <div className="tile-name">{NAV[k].label}</div>
-                  <div className="tile-sub">{NAV[k].sub}</div>
-                </div>
-              </Link>
-            ))}
-          </nav>
-        </article>
       </section>
-      </div>
     </>
   );
 }

@@ -245,7 +245,6 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
 .locked { font-size: 14px; color: var(--wc-muted); margin-top: 8px; }
 
 /* ---------------------------------------------------------------- panels */
-.panels { display: grid; grid-template-columns: 1.1fr 1fr 1.03fr; gap: 16px; margin-top: 24px; }
 .panel { padding: 16px 18px 18px 18px; min-height: 275px; display: flex; flex-direction: column; }
 .panel-head { display: flex; align-items: center; gap: 16px; flex: none; }
 .panel-head .badge-icon { width: 50px; height: 50px; }
@@ -306,8 +305,6 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
 .promo-stats b svg { width: 19px; height: 19px; color: var(--wc-pink); fill: var(--wc-pink); }
 
 /* ---------------------------------------------------------------- lower row */
-.lower { display: grid; grid-template-columns: minmax(0, 463fr) minmax(0, 793fr); gap: 22px; margin-top: 26px; }
-.lower > .card { min-height: 296px; }
 .card-body { flex: 1 1 auto; min-height: 0; }
 .mk-body { display: flex; flex-direction: column; }
 .task-list { list-style: none; margin: 8px 0 0; padding: 0; }
@@ -346,21 +343,6 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
 .form-msg.err { color: var(--wc-red); }
 .form-msg.ok { color: var(--wc-green); }
 
-.shortcuts { padding: 16px 22px 22px 20px; display: flex; flex-direction: column; }
-.shortcuts .panel-head { align-items: center; }
-.shortcuts .panel-title { margin: 0; }
-.shortcuts-note { margin-left: auto; color: #6d6f7a; font-size: 14.5px; }
-.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 13px; margin-top: 16px; }
-.tile {
-  display: flex; align-items: center; gap: 10px; min-height: 93px; padding: 12px 6px 12px 12px; min-width: 0;
-  border-radius: var(--wc-radius-tile); background: #fff; border: 1px solid #f0f1f5;
-  box-shadow: 0 6px 18px rgba(80, 104, 150, 0.055); transition: transform .15s ease, box-shadow .15s ease;
-}
-.tile:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(80, 104, 150, 0.09); }
-.tile .badge-icon { width: 50px; height: 50px; }
-.tile-name { font-size: 15.5px; font-weight: 600; color: #23252f; line-height: 1.3; }
-.tile-sub { font-size: 12px; color: #6d6f7a; line-height: 1.35; letter-spacing: -0.1px; }
-.tile > div { min-width: 0; }
 
 /* ---------------------------------------------------------------- bottom nav (phones) */
 .bottom-nav { display: none; }
@@ -378,19 +360,12 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
   .profile { min-width: 0; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .kpi-line { flex-wrap: wrap; }
-  .panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .panel-tasks { grid-column: 1 / -1; }
   .profile-text, .profile .chev { display: none; }
   .profile { min-width: 0; padding: 0 5px; height: 52px; }
-  .lower { grid-template-columns: minmax(0, 1fr); }
-  .lower > .card { min-height: 0; }
 }
 @media (max-width: 1023px) {
   .search { flex: 1 1 auto; }
   .demo-long { display: none; }
-  .panels { grid-template-columns: minmax(0, 1fr); }
-  .panel-tasks { grid-column: auto; }
-  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hero { height: auto; min-height: 158px; }
   .hero-text { max-width: 62%; }
   .hero-title { font-size: 24px; }
@@ -399,7 +374,6 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
   .freshness { text-align: right; }
   .profile { padding: 0 5px; height: 52px; }
   .brand-name { font-size: 17px; }
-  .shortcuts-note { display: none; }
 }
 
 /* ---------------------------------------------------------------- phones: < 768 */
@@ -445,7 +419,6 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
   .kpi-value.empty { font-size: 15px; }
   .kpi-line { flex-direction: column; align-items: flex-start; gap: 6px; }
   .kpi-sub { font-size: 12.5px; }
-  .panels { grid-template-columns: minmax(0, 1fr); gap: 14px; margin-top: 14px; }
   .panel { min-height: 0; padding: 16px; }
   .panel-head { gap: 12px; }
   .panel-head .badge-icon { width: 44px; height: 44px; }
@@ -464,15 +437,7 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
   .promo-hero .status-pill { grid-column: 2; justify-self: start; }
   .promo-stats b { font-size: 20px; }
   .promo-stats span { font-size: 12.5px; }
-  .lower { gap: 14px; margin-top: 14px; }
-  .shortcuts { padding: 16px; }
   .task-form { grid-template-columns: minmax(0, 1fr); }
-  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
-  .tile { min-height: 76px; gap: 10px; padding: 10px; }
-  .tile .badge-icon { width: 42px; height: 42px; }
-  .tile .badge-icon svg { width: 20px; height: 20px; }
-  .tile-name { font-size: 14.5px; }
-  .tile-sub { font-size: 12px; }
   .notice { margin-left: 0; }
 
   .mobile-only { display: initial; }
@@ -526,14 +491,8 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
   .content { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; padding: 14px 13px 16px 22px; }
   .topbar, .hero-row, .kpis, .notice { flex: none; }
   .hero-row, .kpis { margin-top: 14px; }
-  .dash { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; margin-top: 14px; }
-  .panels, .lower { flex: 1 1 0; min-height: 0; margin-top: 0; }
-  .lower { margin-top: 14px; }
-  .dash .card { min-height: 0; overflow: hidden; }
   .card-body { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #e3c3d1 transparent; padding-right: 6px; margin-right: -6px; }
   .mk-conv { min-height: 76px; }
-  .tiles { grid-auto-rows: minmax(min-content, 1fr); align-content: stretch; }
-  .tile { min-height: 0; }
   .panel-title small { white-space: nowrap; }
   .page { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin-top: 14px; }
   .auth-card { max-height: 100%; overflow-y: auto; }
@@ -562,7 +521,6 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
   .legend { gap: 14px; }
   .promo-hero { margin-top: 10px; }
   .promo-stats { margin-top: 12px; }
-  .tiles { margin-top: 12px; gap: 10px; }
 }
 @media (min-width: 768px) and (min-height: 600px) and (max-height: 820px) {
   .rail { gap: 10px; padding-top: 84px; }
@@ -586,14 +544,6 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
   .kpi .badge-icon { width: 40px; height: 40px; }
   .kpi .badge-icon svg { width: 20px; height: 20px; }
   .kpi-value { font-size: 22px; }
-  .panels { grid-template-columns: 1.1fr 1fr 1.03fr; gap: 14px; }
-  .panel-tasks { grid-column: auto; }
-  .lower { grid-template-columns: minmax(0, 463fr) minmax(0, 793fr); gap: 14px; }
-  .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .tile { gap: 8px; padding: 8px 6px 8px 10px; }
-  .tile .badge-icon { width: 36px; height: 36px; }
-  .tile-name { font-size: 14px; }
-  .tile-sub { font-size: 11.5px; }
   .kpi .delta { font-size: 11.5px; padding: 3px 6px; }
   .kpi .delta svg { display: none; }
   .kpi-line { flex-wrap: nowrap; gap: 6px; }
@@ -605,12 +555,11 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
   .panel-title { font-size: 17px; }
   .panel-sub { font-size: 12.5px; }
   .panel-head { gap: 12px; }
-  .tile .badge-icon svg { width: 18px; height: 18px; }
   .donut-wrap { grid-template-columns: 112px minmax(0, 1fr); gap: 14px; }
   .donut { width: 112px; height: 112px; }
   .legend li { font-size: 14px; gap: 8px; }
 }
-/* tablet portrait (768–1023): 2-column card grid, shortcuts across the bottom */
+/* tablet portrait (768–1023): compact sizing */
 @media (min-width: 768px) and (max-width: 1023px) and (min-height: 600px) {
   .hero-row { gap: 10px; }
   .hero { height: 112px; }
@@ -626,18 +575,6 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
   .panel-title { font-size: 17px; }
   .panel-head { gap: 12px; }
   .panel-head .badge-icon { width: 40px; height: 40px; }
-  .dash { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 14px; }
-  .panels, .lower { display: contents; }
-  .panel-tasks { grid-column: auto; }
-  .shortcuts { grid-column: 1 / -1; }
-  .shortcuts { padding: 12px 14px; }
-  .tiles { grid-template-columns: repeat(8, minmax(0, 1fr)); grid-auto-rows: auto; gap: 8px; margin-top: 10px; }
-  .tile { flex-direction: column; align-items: center; text-align: center; gap: 4px; padding: 8px 4px; min-height: 0; }
-  .tile .badge-icon { width: 34px; height: 34px; }
-  .tile .badge-icon svg { width: 17px; height: 17px; }
-  .tile-name { font-size: 12.5px; }
-  .tile-sub { display: none; }
-  .shortcuts .panel-head .badge-icon { width: 40px; height: 40px; }
   .donut-wrap { grid-template-columns: 112px minmax(0, 1fr); gap: 14px; }
   .donut { width: 112px; height: 112px; }
   .donut-center b { font-size: 21px; }
@@ -647,4 +584,51 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
   .promo-thumb { width: 96px; height: 60px; }
   .promo-hero .status-pill { grid-column: 2; justify-self: start; }
   .promo-stats b { font-size: 20px; }
+}
+
+/* ---------------------------------------------------------------- Dashboard card grid (review round 2)
+ * PC: Marketing | Courts | Tasks (Tasks spans both rows); Promotion spans under Marketing + Courts.
+ * The module-shortcut card was removed (navigation stays in the rail / bottom nav). */
+.dash {
+  display: grid; gap: 16px; margin-top: 24px;
+  grid-template-columns: 1.1fr 1fr 1.03fr;
+  grid-template-areas: "mk ct tk" "pr pr tk";
+}
+.panel-mk { grid-area: mk; }
+.panel-ct { grid-area: ct; }
+.panel-tasks { grid-area: tk; }
+.panel-promo { grid-area: pr; }
+.dash > .card { min-width: 0; }
+.panel-promo .card-body {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 10px 22px;
+  align-items: center; align-content: center; margin-top: 12px;
+}
+.panel-promo .card-body > .empty-state { grid-column: 1 / -1; }
+.panel-promo .promo-hero, .panel-promo .promo-stats { margin-top: 0; }
+@media (max-width: 1279px) {
+  .dash { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "mk ct" "tk pr"; }
+  .panel-promo .card-body { display: block; margin-top: 0; }
+  .panel-promo .promo-hero { margin-top: 12px; }
+  .panel-promo .promo-stats { margin-top: 14px; }
+}
+@media (max-width: 1023px) {
+  .dash { grid-template-columns: minmax(0, 1fr); grid-template-areas: "mk" "ct" "tk" "pr"; }
+}
+@media (max-width: 767px) {
+  .dash { gap: 14px; margin-top: 14px; }
+}
+@media (min-width: 768px) and (min-height: 600px) {
+  .dash { flex: 1 1 0; min-height: 0; margin-top: 14px; gap: 14px; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
+  .dash > .card { min-height: 0; overflow: hidden; }
+}
+@media (min-width: 1024px) and (min-height: 600px) {
+  .dash { grid-template-columns: 1.1fr 1fr 1.03fr; grid-template-areas: "mk ct tk" "pr pr tk"; }
+  .panel-promo .card-body {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 10px 22px;
+    align-items: center; align-content: center; margin-top: 12px;
+  }
+  .panel-promo .promo-hero, .panel-promo .promo-stats { margin-top: 0; }
+}
+@media (min-width: 768px) and (max-width: 1023px) and (min-height: 600px) {
+  .dash { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "mk ct" "tk pr"; }
 }
