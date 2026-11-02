@@ -5,10 +5,15 @@ declare global {
   var __wcPool: pg.Pool | undefined;
 }
 
+/** Pin TLS to verify-full explicitly (pg treats "require" as verify-full today but will weaken it in pg v9). */
+export function pinSslMode(url: string): string {
+  return url.replace(/([?&])sslmode=(prefer|require|verify-ca)(?=&|$)/, "$1sslmode=verify-full");
+}
+
 function createPool() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error("DATABASE_URL is not configured");
-  return new pg.Pool({ connectionString, max: 5, idleTimeoutMillis: 10_000 });
+  return new pg.Pool({ connectionString: pinSslMode(connectionString), max: 5, idleTimeoutMillis: 10_000 });
 }
 
 export function db(): pg.Pool {

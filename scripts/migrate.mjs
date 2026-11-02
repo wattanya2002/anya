@@ -4,7 +4,9 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import pg from "pg";
 
-const url = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
+const rawUrl = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
+// Pin TLS to verify-full explicitly (same as lib/db.ts).
+const url = rawUrl?.replace(/([?&])sslmode=(prefer|require|verify-ca)(?=&|$)/, "$1sslmode=verify-full");
 if (!url) {
   console.error("DATABASE_URL_UNPOOLED or DATABASE_URL is required");
   process.exit(1);

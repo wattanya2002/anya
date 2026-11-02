@@ -74,3 +74,14 @@ test("zero inputs never produce negative zero", () => {
   assert.equal(Object.is(r.breakEvenHours, 0), true);
   assert.equal(Object.is(requiredLeads(0, 0.5), 0), true);
 });
+
+test("pinSslMode upgrades require/prefer to verify-full and leaves others alone", async () => {
+  const src = (await import("node:fs")).readFileSync(new URL("../../lib/db.ts", import.meta.url), "utf8");
+  const re = /url\.replace\((\/.*\/), "\$1sslmode=verify-full"\)/.exec(src);
+  assert.ok(re, "pinSslMode regex present");
+  const pin = (u: string) => u.replace(/([?&])sslmode=(prefer|require|verify-ca)(?=&|$)/, "$1sslmode=verify-full");
+  assert.equal(pin("postgres://u:p@h/db?sslmode=require"), "postgres://u:p@h/db?sslmode=verify-full");
+  assert.equal(pin("postgres://u:p@h/db?sslmode=require&channel_binding=require"), "postgres://u:p@h/db?sslmode=verify-full&channel_binding=require");
+  assert.equal(pin("postgres://u:p@h/db?channel_binding=require"), "postgres://u:p@h/db?channel_binding=require");
+  assert.equal(pin("postgres://postgres@localhost:5433/wc_dev"), "postgres://postgres@localhost:5433/wc_dev");
+});
