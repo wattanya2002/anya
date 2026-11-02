@@ -9,6 +9,7 @@ import { Delta } from "@/components/delta";
 import { Donut, Sparkline, sliceColor } from "@/components/charts";
 import { RangeSelect } from "@/components/range-select";
 import { TaskList, AddTaskButton } from "@/components/tasks-today";
+import { MobileTabs } from "@/components/mobile-tabs";
 
 const SOURCE_TH: Record<string, string> = { manual: "กรอกเอง", import: "ไฟล์นำเข้า", api: "API" };
 
@@ -20,7 +21,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const firstName = user.displayName;
 
   return (
-    <>
+    <div className="home" data-mscope="home">
+      <MobileTabs scope="home" label="เลือกการ์ด" tabs={[
+        { id: "ov", label: "ภาพรวม" }, { id: "mk", label: "การตลาด" }, { id: "ct", label: "การจอง" },
+        { id: "tk", label: "งานวันนี้" }, { id: "pr", label: "โปรฯ" },
+      ]} />
+      <div className="m-pane" data-tab="ov">
       <section className="hero-row" aria-label="ภาพรวม">
         <div className="hero">
           {/* Provisional banner cropped from the user-approved master image; replace with the official photo when supplied. */}
@@ -59,8 +65,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <KpiCard icon={<Heart />} tone="tone-pink" label="อัตราการกลับมาใช้บริการ" kpi={d.returnRate} fmt={(n) => formatPct(n)} sub={compare} />
       </section>
 
-      <section className="dash" aria-label="สรุปผล">
-        <article className="card panel panel-mk">
+      </div>
+
+      <section className="dash" aria-label="สรุปผล" data-tab-host>
+        <article className="card panel panel-mk" data-tab="mk">
           <PanelHead icon={<Megaphone />} title="ผลการตลาด (Marketing)" sub="ภาพรวมแคมเปญและช่องทางการตลาด" href={NAV.marketing.href} />
           <div className="card-body mk-body">
           {d.marketing === "forbidden" ? (
@@ -107,7 +115,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </div>
         </article>
 
-        <article className="card panel panel-ct">
+        <article className="card panel panel-ct" data-tab="ct">
           <PanelHead icon={<Calendar />} title="สรุปการจองสนาม" sub="จำนวนการจองตามประเภทสนาม" href={NAV.courts.href} />
           <div className="card-body">
           {!d.courts.configured ? (
@@ -134,7 +142,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </article>
 
 
-        <article className="card panel panel-tasks" aria-labelledby="tasks-title">
+        <article className="card panel panel-tasks" aria-labelledby="tasks-title" data-tab="tk">
           <div className="panel-head">
             <span className="badge-icon tone-pink" aria-hidden="true"><SquareCheck /></span>
             <div className="panel-head-text">
@@ -149,7 +157,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <TaskList tasks={d.tasks} canManage={can(user, "tasks.manage")} />
           </div>
         </article>
-        <article className="card panel panel-promo">
+        <article className="card panel panel-promo" data-tab="pr">
           <PanelHead icon={<Tag />} title="สรุปโปรโมชั่น" sub="ประสิทธิภาพของโปรโมชั่นที่กำลังใช้งาน" href={NAV.promotion.href} />
           <div className="card-body">
           {d.promotion === "forbidden" ? (
@@ -184,7 +192,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </div>
         </article>
       </section>
-    </>
+    </div>
   );
 }
 

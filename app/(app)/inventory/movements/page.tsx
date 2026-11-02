@@ -3,6 +3,7 @@ import { requireUser, can } from "@/lib/auth";
 import { getLocations, listMovements, listProducts } from "@/lib/inventory";
 import { formatInt, formatThaiDateTime } from "@/lib/format";
 import { MovementForm } from "@/components/inventory/movement-form";
+import { MobileTabs } from "@/components/mobile-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +12,9 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
   const [locations, products, moves] = await Promise.all([getLocations(user.orgId), listProducts(user.orgId), listMovements(user.orgId, { limit: 200 })]);
   return (
-    <div className="inv-body inv-split has-panel panel-left">
-      <article className="card panel side-panel" aria-labelledby="mv-title">
+    <div className="inv-body inv-split has-panel panel-left" data-mscope="mv">
+      <MobileTabs scope="mv" label="เลือกการ์ด" defaultTab={can(user, "inventory.manage") ? "form" : "log"} tabs={[{ id: "form", label: "บันทึกรายการ" }, { id: "log", label: "ประวัติ" }]} />
+      <article className="card panel side-panel" aria-labelledby="mv-title" data-tab="form">
         <div className="panel-head">
           <span className="badge-icon tone-pink" aria-hidden="true"><ArrowLeftRight /></span>
           <div className="panel-head-text"><h2 className="panel-title" id="mv-title">บันทึกรับเข้า / เบิก / ย้าย</h2><p className="panel-sub">ทุกครั้งบันทึกชื่อผู้ทำและเวลา</p></div>
@@ -22,7 +24,7 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
             products={products.map((p) => ({ id: p.id, name: p.name, sku: p.sku, unit: p.unit, byLocation: p.byLocation }))} locations={locations} />
         </div>
       </article>
-      <article className="card panel" aria-labelledby="log-title">
+      <article className="card panel" aria-labelledby="log-title" data-tab="log">
         <div className="panel-head">
           <span className="badge-icon tone-purple" aria-hidden="true"><History /></span>
           <div className="panel-head-text"><h2 className="panel-title" id="log-title">ประวัติการเคลื่อนไหว <small>(ล่าสุด {moves.length} รายการ)</small></h2>

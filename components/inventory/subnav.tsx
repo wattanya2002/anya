@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const TABS = [
+export const INV_TABS = [
   { href: "/inventory", label: "ภาพรวม" },
   { href: "/inventory/products", label: "สินค้า" },
   { href: "/inventory/movements", label: "รับเข้า/เบิก" },
@@ -15,7 +15,7 @@ export function InventorySubnav() {
   const path = usePathname();
   return (
     <nav className="subnav" aria-label="เมนู Inventory">
-      {TABS.map((t) => {
+      {INV_TABS.map((t) => {
         const active = t.href === "/inventory" ? path === "/inventory" : path.startsWith(t.href);
         return <Link key={t.href} href={t.href} aria-current={active ? "page" : undefined}>{t.label}</Link>;
       })}

@@ -5,6 +5,7 @@ import { reportRange } from "@/lib/report-range";
 import { formatBahtFromSatang, formatInt } from "@/lib/format";
 import { ReportActions } from "@/components/inventory/report-actions";
 import { StockBadge } from "@/components/inventory/status";
+import { MobileTabs } from "@/components/mobile-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +16,9 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
   const text = reportText(r, user.orgName, new Date());
   const exportHref = `/inventory/report/export?from=${range.from}&to=${range.to}`;
   return (
-    <div className="inv-body inv-report">
-      <article className="card panel report-main" aria-labelledby="rp-title">
+    <div className="inv-body inv-report" data-mscope="rep">
+      <MobileTabs scope="rep" label="เลือกการ์ด" tabs={[{ id: "main", label: "สรุปรายงาน" }, { id: "text", label: "ข้อความส่งหัวหน้า" }]} />
+      <article className="card panel report-main" aria-labelledby="rp-title" data-tab="main">
         <div className="panel-head">
           <span className="badge-icon tone-pink" aria-hidden="true"><FileText /></span>
           <div className="panel-head-text"><h2 className="panel-title" id="rp-title">สรุปสต็อกส่งหัวหน้า</h2><p className="panel-sub">{user.orgName} · {range.from} ถึง {range.to}</p></div>
@@ -55,7 +57,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
           <p className="muted small">มูลค่าคิดจากราคาทุนล่าสุดของสินค้า · ข้อมูลจากการบันทึกในระบบนี้เท่านั้น</p>
         </div>
       </article>
-      <article className="card panel report-text no-print" aria-labelledby="rt-title">
+      <article className="card panel report-text no-print" aria-labelledby="rt-title" data-tab="text">
         <div className="panel-head">
           <span className="badge-icon tone-green" aria-hidden="true"><ClipboardList /></span>
           <div className="panel-head-text"><h2 className="panel-title" id="rt-title">ข้อความพร้อมส่ง</h2><p className="panel-sub">คัดลอกหรือส่งเข้า LINE ได้ทันที</p></div>

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { formatThaiDateTime } from "@/lib/format";
 import { UploadForm, ConfirmForm } from "@/components/inventory/import-forms";
 import { cancelImport } from "../actions";
+import { MobileTabs } from "@/components/mobile-tabs";
 import { TEMPLATE_COLUMNS, type ImportRow } from "@/lib/inventory-import";
 
 export const dynamic = "force-dynamic";
@@ -25,8 +26,11 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
     : undefined;
 
   return (
-    <div className="inv-body inv-split has-panel panel-left">
-      <article className="card panel side-panel" aria-labelledby="up-title">
+    <div className="inv-body inv-split has-panel panel-left" data-mscope="imp">
+      <MobileTabs scope="imp" label="เลือกการ์ด" defaultTab={job ? `pv-${job.id}` : "up"} tabs={[
+        { id: "up", label: "อัปโหลดไฟล์" }, { id: job ? `pv-${job.id}` : "pv", label: job ? "ตรวจข้อมูล" : "ประวัติ" },
+      ]} />
+      <article className="card panel side-panel" aria-labelledby="up-title" data-tab="up">
         <div className="panel-head">
           <span className="badge-icon tone-blue" aria-hidden="true"><FileSpreadsheet /></span>
           <div className="panel-head-text"><h2 className="panel-title" id="up-title">อัปโหลดรายการสินค้า</h2><p className="panel-sub">เพิ่มสินค้าใหม่ / อัปเดตตาม SKU / รับเข้าสต็อก</p></div>
@@ -45,7 +49,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
         </div>
       </article>
 
-      <article className="card panel" aria-labelledby="pv-title">
+      <article className="card panel" aria-labelledby="pv-title" data-tab={job ? `pv-${job.id}` : "pv"}>
         <div className="panel-head">
           <span className="badge-icon tone-purple" aria-hidden="true"><ListChecks /></span>
           <div className="panel-head-text">

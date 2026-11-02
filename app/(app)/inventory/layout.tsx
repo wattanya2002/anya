@@ -1,6 +1,7 @@
 import { Box } from "lucide-react";
 import { requireUser, can } from "@/lib/auth";
 import { InventorySubnav } from "@/components/inventory/subnav";
+import { InventorySubnavSelect } from "@/components/inventory/subnav-select";
 
 export default async function InventoryLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
@@ -15,8 +16,9 @@ export default async function InventoryLayout({ children }: { children: React.Re
   return (
     <div className="inv">
       <div className="inv-head">
-        <h1 className="inv-title"><span className="badge-icon tone-blue" aria-hidden="true"><Box /></span>Inventory · สต็อก &amp; อุปกรณ์</h1>
+        <h1 className="inv-title"><span className="badge-icon tone-blue" aria-hidden="true"><Box /></span>Inventory<span className="inv-title-th"> · สต็อก &amp; อุปกรณ์</span></h1>
         <InventorySubnav />
+        <InventorySubnavSelect />
       </div>
       {children}
     </div>

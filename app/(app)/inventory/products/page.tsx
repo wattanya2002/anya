@@ -7,6 +7,7 @@ import { ProductForm } from "@/components/inventory/product-form";
 import { MovementForm } from "@/components/inventory/movement-form";
 import { StockBadge } from "@/components/inventory/status";
 import { ContactButtons } from "@/components/inventory/contact";
+import { MobileTabs } from "@/components/mobile-tabs";
 
 export const dynamic = "force-dynamic";
 type SP = Promise<Record<string, string | undefined>>;
@@ -31,8 +32,11 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
   const closeHref = keep({});
 
   return (
-    <div className={`inv-body inv-split${panel ? " has-panel" : ""}`}>
-      <article className="card panel" aria-labelledby="prod-title">
+    <div className={`inv-body inv-split${panel ? " has-panel" : ""}`} data-mscope="prod">
+      {panel && <MobileTabs scope="prod" label="เลือกการ์ด" defaultTab={`form-${sp.adjust ?? sp.edit ?? "new"}`} tabs={[
+        { id: "list", label: "รายการสินค้า" }, { id: `form-${sp.adjust ?? sp.edit ?? "new"}`, label: adjust ? "ปรับสต็อก" : editing ? "แก้ไขสินค้า" : "เพิ่มสินค้า" },
+      ]} />}
+      <article className="card panel" aria-labelledby="prod-title" data-tab="list">
         <div className="panel-head">
           <span className="badge-icon tone-blue" aria-hidden="true"><Package /></span>
           <div className="panel-head-text"><h2 className="panel-title" id="prod-title">สินค้า <small>({products.length} รายการ)</small></h2></div>
@@ -84,7 +88,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: SP 
       </article>
 
       {panel && (
-        <aside className="card panel side-panel" aria-labelledby="side-title">
+        <aside className="card panel side-panel" aria-labelledby="side-title" data-tab={`form-${sp.adjust ?? sp.edit ?? "new"}`}>
           <div className="panel-head">
             <div className="panel-head-text"><h2 className="panel-title" id="side-title">{adjust ? `ปรับสต็อก: ${adjust.name}` : editing ? `แก้ไข: ${editing.name}` : "เพิ่มสินค้าใหม่"}</h2></div>
             <Link className="more" href={closeHref} aria-label="ปิด"><X aria-hidden="true" /></Link>

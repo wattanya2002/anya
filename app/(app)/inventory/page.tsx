@@ -5,6 +5,7 @@ import { inventoryOverview, suggestedOrderQty } from "@/lib/inventory";
 import { formatBahtFromSatang, formatInt, formatThaiDateTime } from "@/lib/format";
 import { ContactButtons } from "@/components/inventory/contact";
 import { StockBadge } from "@/components/inventory/status";
+import { MobileTabs } from "@/components/mobile-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,11 @@ export default async function InventoryOverview() {
   const o = await inventoryOverview(user.orgId);
   const manage = can(user, "inventory.manage");
   return (
-    <div className="inv-body inv-overview">
+    <div className="inv-body inv-overview" data-mscope="inv">
+      <MobileTabs scope="inv" label="เลือกการ์ด" tabs={[
+        { id: "sum", label: "สรุป" }, { id: "att", label: `ต้องสั่ง (${o.attention.length})` }, { id: "rec", label: "ล่าสุด" }, { id: "cat", label: "ตามประเภท" },
+      ]} />
+      <div className="m-pane" data-tab="sum">
       <div className="inv-actions">
         {manage && <Link className="btn-pill primary" href="/inventory/products?new=1"><Plus aria-hidden="true" />เพิ่มสินค้า</Link>}
         {manage && <Link className="btn-pill" href="/inventory/movements"><ArrowLeftRight aria-hidden="true" />รับเข้า / เบิก</Link>}
@@ -26,8 +31,9 @@ export default async function InventoryOverview() {
         <Kpi icon={<AlertTriangle />} tone="tone-amber" label="ใกล้หมด" value={formatInt(o.lowCount)} sub="ถึงจุดสั่งซื้อแล้ว" href="/inventory/products?status=low" />
         <Kpi icon={<PackageX />} tone="tone-pink" label="หมดสต็อก" value={formatInt(o.outCount)} sub="คงเหลือ 0" href="/inventory/products?status=out" />
       </section>
+      </div>
 
-      <article className="card panel inv-att" aria-labelledby="att-title">
+      <article className="card panel inv-att" data-tab="att" aria-labelledby="att-title">
         <div className="panel-head">
           <span className="badge-icon tone-amber" aria-hidden="true"><AlertTriangle /></span>
           <div className="panel-head-text"><h2 className="panel-title" id="att-title">ต้องสั่งเพิ่ม <small>({o.attention.length} รายการ)</small></h2>
@@ -56,7 +62,7 @@ export default async function InventoryOverview() {
         </div>
       </article>
 
-      <article className="card panel inv-rec" aria-labelledby="rec-title">
+      <article className="card panel inv-rec" data-tab="rec" aria-labelledby="rec-title">
         <div className="panel-head">
           <span className="badge-icon tone-purple" aria-hidden="true"><History /></span>
           <div className="panel-head-text"><h2 className="panel-title" id="rec-title">เคลื่อนไหวล่าสุด</h2><p className="panel-sub">รับเข้า เบิก ขาย ย้าย ปรับยอด</p></div>
@@ -79,7 +85,7 @@ export default async function InventoryOverview() {
         </div>
       </article>
 
-      <article className="card panel inv-cat" aria-labelledby="cat-title">
+      <article className="card panel inv-cat" data-tab="cat" aria-labelledby="cat-title">
         <div className="panel-head">
           <span className="badge-icon tone-green" aria-hidden="true"><PieChart /></span>
           <div className="panel-head-text"><h2 className="panel-title" id="cat-title">สต็อกตามประเภท</h2></div>
