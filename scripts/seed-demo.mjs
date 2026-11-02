@@ -86,6 +86,38 @@ for (const [i, [title, time, done]] of tasks.entries()) {
     [org, title, bkkToday, time, done ? "done" : "open", user, done ? user : null, done ? new Date() : null, i],
   );
 }
+// ---------------- inventory demo (local only)
+const locs = [];
+for (const [name, kind, sort] of [["คลังสินค้า", "warehouse", 1], ["ตู้ขายน้ำ", "cabinet", 2]]) {
+  locs.push((await c.query("insert into inventory_locations (org_id, name, kind, sort_order) values ($1,$2,$3,$4) returning id", [org, name, kind, sort])).rows[0].id);
+}
+const catIds = {};
+for (const [i, n] of ["เครื่องดื่ม", "อุปกรณ์เทนนิส", "ของใช้ในสนาม"].entries()) catIds[n] = (await c.query("insert into product_categories (org_id, name, sort_order) values ($1,$2,$3) returning id", [org, n, i])).rows[0].id;
+const brandIds = {};
+for (const n of ["น้ำใสดี", "สปอร์ตพลัส", "เกลือแร่เย็น", "เทนนิสโปร", "กริปเฟรช", "คลีนคอร์ท"]) brandIds[n] = (await c.query("insert into brands (org_id, name) values ($1,$2) returning id", [org, n])).rows[0].id;
+const sup1 = (await c.query("insert into suppliers (org_id, name, contact_name, phone, line_url, lead_time_days, note) values ($1,'ร้านส่งน้ำ ตัวอย่าง','คุณเอ','0812345678','https://line.me/R/ti/p/~demo-water',2,'ส่งทุกวันอังคาร/ศุกร์ ขั้นต่ำ 10 แพ็ก') returning id", [org])).rows[0].id;
+const sup2 = (await c.query("insert into suppliers (org_id, name, contact_name, phone, line_url, lead_time_days) values ($1,'ร้านอุปกรณ์กีฬา ตัวอย่าง','คุณบี','0898765432','https://line.me/R/ti/p/%40demo-sport',5) returning id", [org])).rows[0].id;
+const items = [
+  ["WATER-600", "น้ำดื่ม 600 มล.", "เครื่องดื่ม", "น้ำใสดี", sup1, "ขวด", 12, 550, 1000, 48, 96, [120, 18]],
+  ["WATER-1500", "น้ำดื่ม 1.5 ลิตร", "เครื่องดื่ม", "น้ำใสดี", sup1, "ขวด", 6, 1200, 2000, 24, 48, [30, 6]],
+  ["ELEC-500", "เครื่องดื่มเกลือแร่ 500 มล.", "เครื่องดื่ม", "เกลือแร่เย็น", sup1, "ขวด", 24, 1400, 2500, 24, 48, [12, 4]],
+  ["SPORT-330", "เครื่องดื่มชูกำลัง 330 มล.", "เครื่องดื่ม", "สปอร์ตพลัส", sup1, "กระป๋อง", 24, 1500, 2500, 12, 24, [0, 0]],
+  ["BALL-3", "ลูกเทนนิส (กระป๋อง 3 ลูก)", "อุปกรณ์เทนนิส", "เทนนิสโปร", sup2, "กระป๋อง", 1, 12000, 18000, 5, 12, [8, 0]],
+  ["GRIP-01", "กริปพันด้าม", "อุปกรณ์เทนนิส", "กริปเฟรช", sup2, "ชิ้น", 1, 4500, 8000, 10, 20, [6, 0]],
+  ["RACKET-RENT", "ไม้เทนนิสให้เช่า", "อุปกรณ์เทนนิส", "เทนนิสโปร", sup2, "อัน", 1, 150000, null, 2, 2, [10, 0]],
+  ["TOWEL-S", "ผ้าขนหนูเล็ก", "ของใช้ในสนาม", "คลีนคอร์ท", null, "ผืน", 1, 3500, 6000, 10, 20, [25, 0]],
+  ["CLEAN-1L", "น้ำยาทำความสะอาดพื้น 1 ลิตร", "ของใช้ในสนาม", "คลีนคอร์ท", null, "ขวด", 1, 8900, null, 2, 4, [1, 0]],
+];
+for (const [sku, name, cat, brand, sup, unit, pack, cost, price, rp, rq, qtys] of items) {
+  const pid = (await c.query(
+    "insert into products (org_id, sku, name, category_id, brand_id, supplier_id, unit, pack_size, cost_satang, price_satang, reorder_point, reorder_qty, created_by) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) returning id",
+    [org, sku, name, catIds[cat], brandIds[brand], sup, unit, pack, cost, price, rp, rq, user])).rows[0].id;
+  for (const [i, q] of qtys.entries()) {
+    if (q <= 0) continue;
+    await c.query("insert into stock_balances (org_id, product_id, location_id, qty) values ($1,$2,$3,$4)", [org, pid, locs[i], q]);
+    await c.query("insert into stock_movements (org_id, product_id, location_id, type, qty_delta, balance_after, unit_cost_satang, note, actor_user_id, created_at) values ($1,$2,$3,'OPENING',$4,$4,$5,'ยอดตั้งต้น (ตัวอย่าง)',$6, now() - interval '3 days')", [org, pid, locs[i], q, cost, user]);
+  }
+}
 await c.query("insert into notifications (org_id, user_id, title, body) values ($1,$2,'มีคำขออนุมัติใหม่','โปรโมชั่นประจำเดือนรออนุมัติ')", [org, user]);
 await c.query("commit");
 await c.end();

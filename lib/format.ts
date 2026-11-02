@@ -17,3 +17,9 @@ export function formatThaiDateTime(d: Date) {
     timeZone: "Asia/Bangkok", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
   }).format(d);
 }
+
+/** Satang → "฿5.50" (keeps satang only when present). */
+export function formatBahtExact(satang: number): string {
+  const v = satang / 100;
+  return `฿${v.toLocaleString("en-US", { minimumFractionDigits: Number.isInteger(v) ? 0 : 2, maximumFractionDigits: 2 })}`;
+}

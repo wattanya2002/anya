@@ -11,10 +11,15 @@
 
 Server enforcement: every query is scoped by the signed-in user's `org_id`; permissions are read from `role_permissions` per request (UI hiding is not relied on).
 
-## Next migrations (not yet created — built only after the Home visual gate passes)
+## Implemented — `db/migrations/0002_inventory.sql`
+`product_categories`, `brands`, `suppliers` (phone + LINE link), `inventory_locations` (คลังสินค้า / ตู้ขายน้ำ by default), `products`,
+`stock_balances` (qty ≥ 0), `stock_movements` (append-only ledger: OPENING/RECEIVE/ISSUE/SALE/DAMAGE/EXPIRED/ADJUST/TRANSFER_OUT/TRANSFER_IN,
+idempotency key), `import_rows` (upload preview); permission `inventory.manage` (owner, inventory).
+Screens: `/inventory` overview, `/inventory/products`, `/inventory/movements`, `/inventory/suppliers`, `/inventory/import`, `/inventory/report` (+ Excel export).
+
+## Next migrations
 | Migration | Tables | Screens |
 |---|---|---|
-| 0002_inventory | `products`, `skus` (unique brand/type/flavour/size/pack/barcode), `inventory_locations` (Warehouse / Vending Cabinet …), `stock_movements` (immutable ledger: PURCHASE_RECEIPT, TRANSFER_IN/OUT, SALE, RETURN, DAMAGE, EXPIRED, COUNT_ADJUSTMENT), `stock_balances` (maintained in the same transaction, negative stock rejected) | S17–S19 |
 | 0003_purchasing | `suppliers`, `supplier_products` (MOQ, lead time, pack), `purchase_orders`, `purchase_order_lines`, `goods_receipts`, `goods_receipt_lines` (idempotency key per receipt) | S20–S22, S24 |
 | 0004_stock_counts | `stock_counts`, `stock_count_lines`, variance approvals | S23 |
 | 0005_content | `content_items`, `content_publications`, `content_assets`, `media_assets` (object storage — needs a Blob store), `task_comments`, `task_approvals` | S10–S13, S27 |
@@ -26,7 +31,8 @@ Server enforcement: every query is scoped by the signed-in user's `org_id`; perm
 1. **Visual gate (this delivery)** — Home PC → iPad → iPhone screenshots vs master; sign-off required.
 2. **Shared components** — AppShell / Card / KPI / Chart / Control / Sidebar / BottomNav reused unchanged on every screen.
 3. **P0 data entry** — S28 Data Import (bookings CSV/XLSX + social metrics) so Home fills with real data; S03/S04 Social KPI + targets.
-4. **P0 inventory** — S17–S24 with ledger tests (receive 24 → transfer 12 → sell 3 ⇒ cabinet 9, global 21).
+4. **P0 inventory** — done for S17–S19, S24 + import + manager report; PO / goods receipt / stock count (S20–S23) next.
+4b. **Master Calendar** — see `docs/RCM_ADDITION_MASTER_CALENDAR.md`.
 5. **P0 marketing** — S02, S05–S08, S10–S13 (promotion simulator uses `lib/calc/promotion.ts`, already unit-tested).
 6. **P0 admin** — S27, S29, S30 (roles UI, audit viewer, settings).
 7. **P1** — CRM/LINE follow-ups (manual), approvals, executive PDF/Excel.
