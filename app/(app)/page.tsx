@@ -32,7 +32,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="hero-img" src="/brand/hero-tennis.png" alt="" />
           <div className="hero-text">
-            <p className="hero-greet">สวัสดี {firstName} <span aria-hidden="true">👋</span></p>
+            <p className="hero-greet">สวัสดี {firstName}</p>
             <h1 className="hero-title">ภาพรวมธุรกิจ Wonder Courts</h1>
             <p className="hero-sub">จัดการคอร์ท การตลาด ลูกค้า และยอดขาย ได้ครบในที่เดียว</p>
           </div>
@@ -64,9 +64,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <KpiCard icon={<Heart />} tone="tone-pink" label="อัตราการกลับมาใช้บริการ" kpi={d.returnRate} fmt={(n) => formatPct(n)} sub={compare} />
       </section>
 
+      <div className="dash">
       <section className="panels" aria-label="สรุปผล">
         <article className="card panel">
           <PanelHead icon={<Megaphone />} title="ผลการตลาด (Marketing)" sub="ภาพรวมแคมเปญและช่องทางการตลาด" href={NAV.marketing.href} />
+          <div className="card-body mk-body">
           {d.marketing === "forbidden" ? (
             <div className="empty-state"><strong>ไม่มีสิทธิ์ดูข้อมูลการตลาด</strong></div>
           ) : !d.marketing.hasData ? (
@@ -108,10 +110,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               </div>
             </>
           )}
+          </div>
         </article>
 
         <article className="card panel">
           <PanelHead icon={<Calendar />} title="สรุปการจองสนาม" sub="จำนวนการจองตามประเภทสนาม" href={NAV.courts.href} />
+          <div className="card-body">
           {!d.courts.configured ? (
             <div className="empty-state">
               <strong>ยังไม่ได้ตั้งค่าประเภทสนาม</strong>
@@ -132,10 +136,31 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               </ul>
             </div>
           )}
+          </div>
         </article>
 
+
+        <article className="card panel panel-tasks" aria-labelledby="tasks-title">
+          <div className="panel-head">
+            <span className="badge-icon tone-pink" aria-hidden="true"><SquareCheck /></span>
+            <div className="panel-head-text">
+              <h2 className="panel-title" id="tasks-title">งานวันนี้ <small>({d.tasks.length} รายการ)</small></h2>
+            </div>
+            <div className="head-actions">
+              {can(user, "tasks.manage") && <AddTaskButton />}
+              <Link className="more" href={NAV.settings.href} aria-label="ดูงานและการอนุมัติทั้งหมด"><ChevronRight aria-hidden="true" /></Link>
+            </div>
+          </div>
+          <div className="card-body">
+            <TaskList tasks={d.tasks} canManage={can(user, "tasks.manage")} />
+          </div>
+        </article>
+      </section>
+
+      <section className="lower">
         <article className="card panel panel-promo">
           <PanelHead icon={<Tag />} title="สรุปโปรโมชั่น" sub="ประสิทธิภาพของโปรโมชั่นที่กำลังใช้งาน" href={NAV.promotion.href} />
+          <div className="card-body">
           {d.promotion === "forbidden" ? (
             <div className="empty-state"><strong>ไม่มีสิทธิ์ดูโปรโมชั่น</strong></div>
           ) : d.promotion === null ? (
@@ -165,31 +190,15 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               </div>
             </>
           )}
-        </article>
-      </section>
-
-      <section className="lower">
-        <article className="card tasks" aria-labelledby="tasks-title">
-          <div className="panel-head">
-            <span className="badge-icon tone-pink" aria-hidden="true"><SquareCheck /></span>
-            <div className="panel-head-text">
-              <h2 className="panel-title" id="tasks-title">งานวันนี้ <small>({d.tasks.length} รายการ)</small></h2>
-            </div>
-            <div className="head-actions">
-              {can(user, "tasks.manage") && <AddTaskButton />}
-              <Link className="more" href={NAV.settings.href} aria-label="ดูงานและการอนุมัติทั้งหมด"><ChevronRight aria-hidden="true" /></Link>
-            </div>
           </div>
-          <TaskList tasks={d.tasks} canManage={can(user, "tasks.manage")} />
         </article>
-
         <article className="card shortcuts" aria-labelledby="shortcuts-title">
           <div className="panel-head">
             <span className="badge-icon tone-pink" aria-hidden="true"><LayoutGrid /></span>
             <h2 className="panel-title" id="shortcuts-title">ทางลัดไปยังโมดูล</h2>
             <span className="shortcuts-note">จัดการทุกส่วนของ Wonder Courts</span>
           </div>
-          <nav className="tiles" aria-label="ทางลัดไปยังโมดูล">
+          <nav className="tiles card-body" aria-label="ทางลัดไปยังโมดูล">
             {SHORTCUTS.map((k) => (
               <Link key={k} href={NAV[k].href} className="tile">
                 <span className={`badge-icon ${TILE_TONE[k]}`} aria-hidden="true"><NavIcon k={k} /></span>
@@ -202,6 +211,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </nav>
         </article>
       </section>
+      </div>
     </>
   );
 }
