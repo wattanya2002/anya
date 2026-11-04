@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, CalendarDays, CalendarHeart, UserRound, ChevronLeft, ChevronRight, Clock, ExternalLink, Pencil, Plus, Trash2, Users, X } from "lucide-react";
+import { AlertTriangle, CalendarDays, CalendarHeart, ChartNoAxesColumn, Info, SlidersHorizontal, UserRound, ChevronLeft, ChevronRight, Clock, ExternalLink, Pencil, Plus, Trash2, Users, X } from "lucide-react";
 import { can, type CurrentUser } from "@/lib/auth";
 import { bangkokToday } from "@/lib/dates";
 import { computeAlerts, getEditableEvent, listMembers, loadCalendarItems } from "@/lib/calendar";
@@ -125,8 +125,11 @@ export async function CalendarScreen({ user, searchParams, base, preset }: {
       </div>
 
       <div className="cal-body">
-        <MobileTabs scope="cal" label="เลือกการ์ด" defaultTab={panel === "summary" ? "main" : sideTab} tabs={[
-          { id: "main", label: "ปฏิทิน" }, { id: sideTab, label: sideLabel }, { id: "filter", label: activeFilters ? `ตัวกรอง (${activeFilters})` : "ตัวกรอง" },
+        <MobileTabs scope="cal" compact label="เลือกการ์ด" defaultTab={panel === "summary" ? "main" : sideTab} tabs={[
+          { id: "main", label: "ปฏิทิน", icon: <CalendarDays aria-hidden="true" /> },
+          { id: sideTab, label: sideLabel, icon: panel === "form" ? (editing ? <Pencil aria-hidden="true" /> : <Plus aria-hidden="true" />)
+            : panel === "item" ? <Info aria-hidden="true" /> : panel === "holiday" ? <CalendarHeart aria-hidden="true" /> : <ChartNoAxesColumn aria-hidden="true" /> },
+          { id: "filter", label: activeFilters ? `ตัวกรอง (${activeFilters})` : "ตัวกรอง", icon: <SlidersHorizontal aria-hidden="true" />, badge: activeFilters },
         ]} />
 
         <form className="cal-filters" id="cal-filters" action={base} role="search" data-tab="filter">
@@ -239,7 +242,7 @@ function MonthView({ items, hols, st, today, href }: { items: CalItem[]; hols: H
                       <span className="cal-pick-num">{Number(d.slice(8))}</span>
                       <span className="cal-dots" aria-hidden="true">
                         {h0 && <HolidayIcon theme={h0.theme} className="cal-pick-hol" />}
-                        {on.slice(0, h0 ? 2 : 3).map((i) => <i key={i.key} className={`tone-${KIND_TONE[i.kind]}`} />)}
+                        {[...new Set(on.filter((i) => i.start === d).map((i) => KIND_TONE[i.kind]))].slice(0, 3).map((t) => <i key={t} className={`tone-${t}`} />)}
                       </span>
                     </Link>
                     {hidden[c] > 0 && <Link className="cal-more" href={href({ view: "day", date: d })}>+{hidden[c]} รายการ</Link>}
@@ -265,7 +268,7 @@ function MonthView({ items, hols, st, today, href }: { items: CalItem[]; hols: H
           <div key={g.d} className="cal-sheet-day">
             <h2 className={g.d === today ? "today" : undefined}>{thaiDate(g.d, { weekday: true })}{g.d === today ? <small> · วันนี้</small> : null}</h2>
             <HolidayRows list={g.hs} href={href} />
-            <AgendaRows items={g.on} href={href} empty={k === 0 && !g.hs.length ? "ไม่มีรายการในวันนี้" : undefined} />
+            <AgendaRows items={g.on} href={href} compact empty={k === 0 && !g.hs.length ? "ไม่มีรายการในวันนี้" : undefined} />
           </div>
         ))}
       </section>
@@ -347,14 +350,14 @@ function DayView({ items, hols, st, href }: { items: CalItem[]; hols: Holiday[];
             <Link key={d} href={href({ view: "day", date: d })} aria-current={d === st.date ? "date" : undefined}
               className={`${d === st.date ? "sel" : ""}${d === bangkokToday() ? " today" : ""}${hs.length ? " hol" : ""}`} style={hs[0] ? holStyle(hs[0]) : undefined}>
               <span>{WEEKDAY_TH[k]}</span><b>{Number(d.slice(8))}</b>
-              <i className={itemsOn(items, d).length ? "has" : undefined} aria-hidden="true" />
+              <i className={itemsOn(items, d).some((i) => i.start === d) ? "has" : undefined} aria-hidden="true" />
             </Link>
           );
         })}
       </nav>
       <div className="cal-daylist">
         <HolidayRows list={dayHols} href={href} />
-        <AgendaRows items={allDay} href={href} />
+        <AgendaRows items={allDay} href={href} compact />
         {timedSorted.length === 0 && !allDay.length && !dayHols.length && <p className="muted small cal-empty">ไม่มีรายการในวันนี้</p>}
         {timedSorted.length > 0 && (
           <ol className="cal-tl">
@@ -418,13 +421,14 @@ function AgendaView({ items, hols, range, today, href }: { items: CalItem[]; hol
   );
 }
 
-function TimeCell({ i }: { i: CalItem }) {
+function TimeCell({ i, compact = false }: { i: CalItem; compact?: boolean }) {
+  if (compact && (i.start !== i.end || !i.startTime)) return <span className="cal-row-time"><b>ทั้งวัน</b></span>;
   if (i.start !== i.end) return <span className="cal-row-time"><b>{thaiDate(i.start)}</b><small>– {thaiDate(i.end)}</small></span>;
   if (!i.startTime) return <span className="cal-row-time"><b>ทั้งวัน</b></span>;
   return <span className="cal-row-time"><b>{i.startTime}</b>{i.endTime && <small>{i.endTime}</small>}</span>;
 }
 
-function AgendaRows({ items, href, empty }: { items: CalItem[]; href: Href; empty?: string }) {
+function AgendaRows({ items, href, empty, compact = false }: { items: CalItem[]; href: Href; empty?: string; compact?: boolean }) {
   if (!items.length) return empty ? <p className="muted small cal-empty">{empty}</p> : null;
   return (
     <ul className="cal-rows">
@@ -432,9 +436,9 @@ function AgendaRows({ items, href, empty }: { items: CalItem[]; href: Href; empt
         <li key={i.key}>
           <Link className={`cal-row st-${i.status}`} href={href({ item: i.sourceKey, date: i.start })}>
             <span className={`cal-dot tone-${KIND_TONE[i.kind]}`} aria-hidden="true" />
-            <TimeCell i={i} />
+            <TimeCell i={i} compact={compact} />
             <span className="cal-row-main"><span className="cal-row-title">{i.title}</span>
-              <span className="cal-row-sub">{KIND_TH[i.kind]}{i.ownerName ? ` · ${i.ownerName}` : ""}</span></span>
+              <span className="cal-row-sub">{KIND_TH[i.kind]}{compact && i.start !== i.end ? ` · ${thaiDate(i.start)} – ${thaiDate(i.end)}` : ""}{i.ownerName ? ` · ${i.ownerName}` : ""}</span></span>
             <span className={`cal-status st-${i.status}`}>{STATUS_TH[i.status]}</span>
           </Link>
         </li>

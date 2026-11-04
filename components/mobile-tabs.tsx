@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-export type MobileTab = { id: string; label: string };
+export type MobileTab = { id: string; label: string; icon?: React.ReactNode; badge?: number };
 
 /**
  * iPhone (<768px) card tabs — review decision "แท็บสลับการ์ด": every page fits one screen and
@@ -12,7 +12,8 @@ export type MobileTab = { id: string; label: string };
  * none of their descendants belongs to the active tab. On PC / iPad the tab bar is display:none and
  * the generated rules are scoped to the phone media query, so the grid layout is untouched.
  */
-export function MobileTabs({ scope, tabs, defaultTab, label }: { scope: string; tabs: MobileTab[]; defaultTab?: string; label: string }) {
+/** `compact`: icon-only tabs (label kept for screen readers and as a tooltip). */
+export function MobileTabs({ scope, tabs, defaultTab, label, compact = false }: { scope: string; tabs: MobileTab[]; defaultTab?: string; label: string; compact?: boolean }) {
   const initial = defaultTab && tabs.some((t) => t.id === defaultTab) ? defaultTab : tabs[0]?.id ?? "";
   const [state, setState] = useState({ base: initial, active: initial });
   // A new default (e.g. opening the edit form via a link) switches to that tab.
@@ -33,11 +34,12 @@ export function MobileTabs({ scope, tabs, defaultTab, label }: { scope: string; 
   return (
     <>
       <style>{css}</style>
-      <div className="mtab-bar" role="tablist" aria-label={label} style={{ ["--mtab-n" as string]: tabs.length }}>
+      <div className={`mtab-bar${compact ? " compact" : ""}`} role="tablist" aria-label={label} style={{ ["--mtab-n" as string]: tabs.length }}>
         {tabs.map((t, i) => (
           <button key={t.id} id={`mtab-${scope}-${t.id}`} type="button" role="tab" aria-selected={t.id === active}
-            tabIndex={t.id === active ? 0 : -1} onClick={() => select(t.id)} onKeyDown={(e) => onKey(e, i)}>
-            {t.label}
+            tabIndex={t.id === active ? 0 : -1} onClick={() => select(t.id)} onKeyDown={(e) => onKey(e, i)} title={compact ? t.label : undefined}>
+            {compact && t.icon ? <>{t.icon}<span className="sr-only">{t.label}</span></> : t.label}
+            {t.badge ? <b className="mtab-badge" aria-hidden="true">{t.badge}</b> : null}
           </button>
         ))}
       </div>
