@@ -1,5 +1,5 @@
 import {
-  House, ChartNoAxesColumnIncreasing, Megaphone, Image as ImageIcon, Tag, Users, Package, FileText, Settings, Share2, Box,
+  House, ChartNoAxesColumnIncreasing, Megaphone, Image as ImageIcon, Tag, Users, Package, FileText, Settings, Share2, Box, CalendarDays,
 } from "lucide-react";
 import type { NavKey } from "@/lib/nav";
 import { CourtBall } from "./icons";
@@ -8,6 +8,7 @@ export function NavIcon({ k, className }: { k: NavKey; className?: string }) {
   const p = { className, "aria-hidden": true as const, strokeWidth: 1.8 };
   switch (k) {
     case "home": return <House {...p} />;
+    case "calendar": return <CalendarDays {...p} />;
     case "dashboard": return <ChartNoAxesColumnIncreasing {...p} />;
     case "marketing": return <Megaphone {...p} />;
     case "content": return <ImageIcon {...p} />;

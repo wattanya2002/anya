@@ -8,7 +8,7 @@ export default async function ModulePage({ params }: { params: Promise<{ slug: s
   await requireUser();
   const { slug } = await params;
   const item = NAV[slug as NavKey];
-  if (!item || slug === "home") notFound();
+  if (!item || !item.href.startsWith("/modules/")) notFound();
   return (
     <section className="card page" aria-labelledby="module-title">
       <span className="badge-icon tone-pink" aria-hidden="true"><NavIcon k={item.key} /></span>

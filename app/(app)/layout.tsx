@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { syncCalendarAlerts } from "@/lib/calendar";
 import { Rail, BottomNav } from "@/components/rail";
 import { Topbar } from "@/components/topbar";
 
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
+  await syncCalendarAlerts(user);
   const { rows } = await db().query(
     `select id, title, body, href, read_at is not null as read from notifications
       where user_id = $1 and org_id = $2 order by created_at desc limit 8`,

@@ -10,7 +10,7 @@ import { can, getCurrentUser } from "@/lib/auth";
 import { DUMMY_HASH, hashPassword, verifyPassword } from "@/lib/password";
 import { bangkokToday } from "@/lib/dates";
 
-export type FormState = { error?: string; ok?: string; nonce?: string; fields?: Record<string, string> };
+export type FormState = { error?: string; ok?: string; warn?: string; nonce?: string; fields?: Record<string, string> };
 
 async function clientIp() {
   const h = await headers();

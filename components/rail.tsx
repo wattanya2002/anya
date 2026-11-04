@@ -6,7 +6,8 @@ import { NavIcon } from "./nav-icon";
 import { Ellipsis } from "lucide-react";
 
 function isActive(pathname: string, href: string) {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  if (href === "/" || href === "/calendar") return pathname === href;
+  return pathname.startsWith(href);
 }
 
 export function Rail() {
@@ -28,7 +29,7 @@ export function Rail() {
 
 export function BottomNav() {
   const pathname = usePathname();
-  const moreKeys = (["dashboard", "promotion", "customers", "courts", "reports", "settings"] as const);
+  const moreKeys = (["dashboard", "content", "promotion", "customers", "courts", "reports", "settings"] as const);
   const moreActive = moreKeys.some((k) => isActive(pathname, NAV[k].href));
   return (
     <nav className="bottom-nav" aria-label="เมนูหลัก">

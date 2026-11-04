@@ -116,7 +116,7 @@ async function login(browser, email, password, viewport = { width: 1440, height:
   });
 
   await check("module shortcut opens honest not-yet-available page", async () => {
-    await page.goto(`${BASE}/modules/inventory`);
+    await page.goto(`${BASE}/modules/promotion`);
     assert.match(await page.locator("main").innerText(), /ยังไม่เปิดใช้งาน/);
     const r = await page.goto(`${BASE}/modules/does-not-exist`);
     assert.equal(r.status(), 404);
