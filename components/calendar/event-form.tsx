@@ -21,6 +21,9 @@ export function EventForm({ event, members, me, defaultDate, defaultKind, canFol
       {event && <input type="hidden" name="id" value={event.id} />}
       <div className="field span-2"><label htmlFor="c-title">ชื่อรายการ *</label>
         <input id="c-title" name="title" required maxLength={160} placeholder="เช่น ประชุมทีมการตลาด" defaultValue={v("title", event?.title)} /></div>
+      <div className="field span-2"><label htmlFor="c-short">ชื่อย่อ (แสดงในปฏิทินรายเดือน)</label>
+        <input id="c-short" name="shortTitle" maxLength={24} placeholder="เช่น ประชุมการตลาด" defaultValue={v("shortTitle", event?.shortTitle)} />
+        <small className="muted">ไม่เกิน 24 ตัวอักษร · เว้นว่างจะใช้ชื่อรายการ</small></div>
       <div className="field"><label htmlFor="c-kind">ประเภท</label>
         <select id="c-kind" name="kind" defaultValue={v("kind", event?.kind ?? defaultKind ?? "appointment")}>
           {kinds.map((k) => <option key={k} value={k}>{KIND_TH[k]}</option>)}

@@ -2,7 +2,7 @@
  *  private → creator or owner; team → everyone with calendar.view; executive → calendar.view_executive (or creator/owner);
  *  customer follow-ups additionally need crm.followup (or creator/owner). */
 export const MANUAL_SQL = `
-  select e.id, e.title, e.kind, e.starts_on::text as start, e.ends_on::text as "end", e.all_day,
+  select e.id, e.title, e.short_title, e.kind, e.starts_on::text as start, e.ends_on::text as "end", e.all_day,
          to_char(e.start_time, 'HH24:MI') as start_time, to_char(e.end_time, 'HH24:MI') as end_time,
          e.repeat, e.repeat_until::text as repeat_until, e.owner_user_id, u.display_name as owner_name, e.created_by,
          e.status, e.remind_minutes, e.details, e.link_url, e.visibility

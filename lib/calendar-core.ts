@@ -14,6 +14,7 @@ export type CalItem = {
   source: CalSource;
   kind: CalKind;
   title: string;
+  shortTitle?: string | null; // Month chips (RCM v1.1 §4.4)
   start: string;        // inclusive
   end: string;          // inclusive
   startTime: string | null;
@@ -91,8 +92,9 @@ export function addMonths(iso: string, n: number): string {
 }
 export function minutesOf(t: string): number { return Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5)); }
 
+/** RCM v1.1 DAY-01: /calendar opens the Day view; a deep link with view=… overrides it. */
 export function parseView(v: unknown): CalView {
-  return v === "week" || v === "day" || v === "agenda" ? v : "month";
+  return v === "week" || v === "month" || v === "agenda" ? v : "day";
 }
 
 /** Weeks (Monday-first) covering the month of `date`. */
@@ -123,6 +125,21 @@ export function thaiDate(iso: string, opts: { weekday?: boolean; year?: boolean 
   const wd = opts.weekday ? `${WEEKDAY_TH[weekdayMon(iso)]} ` : "";
   return `${wd}${d} ${MONTH_TH[m - 1]}${opts.year ? ` ${y + 543}` : ""}`;
 }
+const WEEKDAY_TH_FULL = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"]; // Monday-first
+/** "พุธ, 4 พฤศจิกายน 2569" — date caption of the Day/Month screens (RCM v1.1 UI-G05). */
+export function thaiLongDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return `${WEEKDAY_TH_FULL[weekdayMon(iso)]}, ${d} ${MONTH_TH_FULL[m - 1]} ${y + 543}`;
+}
+/** "วันพุธที่ 4 พฤศจิกายน 2569" — accessible day label. */
+export function thaiSpokenDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return `วัน${WEEKDAY_TH_FULL[weekdayMon(iso)]}ที่ ${d} ${MONTH_TH_FULL[m - 1]} ${y + 543}`;
+}
+export function monthTitle(iso: string): string {
+  return `${MONTH_TH_FULL[Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(0, 4)) + 543}`;
+}
+
 export function periodLabel(view: CalView, date: string, agendaDays = 30): string {
   const y = (iso: string) => Number(iso.slice(0, 4)) + 543;
   if (view === "month") return `${MONTH_TH_FULL[Number(date.slice(5, 7)) - 1]} ${y(date)}`;
@@ -285,7 +302,7 @@ export function timeLabel(i: { startTime: string | null; endTime: string | null 
 }
 
 export type EventInput = {
-  title: string; kind: ManualKind; start: string; end: string; allDay: boolean; startTime: string | null; endTime: string | null;
+  title: string; shortTitle: string | null; kind: ManualKind; start: string; end: string; allDay: boolean; startTime: string | null; endTime: string | null;
   repeat: Repeat; repeatUntil: string | null; ownerId: string | null; status: Exclude<CalStatus, "overdue" | "pending_approval">;
   remindMinutes: number | null; details: string | null; linkUrl: string | null; visibility: Visibility;
 };
@@ -295,6 +312,8 @@ export function validateEventInput(f: Record<string, string>, opts: { memberIds:
   const title = (f.title ?? "").trim();
   if (!title) return { error: "กรุณากรอกชื่อรายการ" };
   if (title.length > 160) return { error: "ชื่อรายการยาวเกิน 160 ตัวอักษร" };
+  const shortTitle = (f.shortTitle ?? "").trim() || null;
+  if (shortTitle && shortTitle.length > 24) return { error: "ชื่อย่อยาวเกิน 24 ตัวอักษร" };
   const kind = f.kind as ManualKind;
   if (!(MANUAL_KINDS as readonly string[]).includes(kind)) return { error: "กรุณาเลือกประเภท" };
   if (kind === "followup" && !opts.canFollowup) return { error: "ไม่มีสิทธิ์สร้างนัดติดตามลูกค้า" };
@@ -345,5 +364,5 @@ export function validateEventInput(f: Record<string, string>, opts: { memberIds:
   }
   const visibility = (f.visibility || "team") as Visibility;
   if (!["private", "team", "executive"].includes(visibility)) return { error: "ความเป็นส่วนตัวไม่ถูกต้อง" };
-  return { value: { title, kind, start, end, allDay, startTime, endTime, repeat, repeatUntil, ownerId, status, remindMinutes, details, linkUrl, visibility } };
+  return { value: { title, shortTitle, kind, start, end, allDay, startTime, endTime, repeat, repeatUntil, ownerId, status, remindMinutes, details, linkUrl, visibility } };
 }

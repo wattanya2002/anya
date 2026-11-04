@@ -19,7 +19,7 @@ export async function listMembers(orgId: string): Promise<Member[]> {
 }
 
 type ManualRow = {
-  id: string; title: string; kind: CalKind; start: string; end: string; all_day: boolean; start_time: string | null; end_time: string | null;
+  id: string; title: string; short_title: string | null; kind: CalKind; start: string; end: string; all_day: boolean; start_time: string | null; end_time: string | null;
   repeat: Repeat; repeat_until: string | null; owner_user_id: string | null; owner_name: string | null; created_by: string;
   status: CalStatus; remind_minutes: number | null; details: string | null; link_url: string | null; visibility: Visibility;
 };
@@ -38,7 +38,7 @@ function manualHref(kind: CalKind, link: string | null): { href: string | null; 
 function fromManual(user: CurrentUser, r: ManualRow): CalItem {
   const h = manualHref(r.kind, r.link_url);
   return {
-    key: `ev:${r.id}`, sourceKey: `ev:${r.id}`, source: "manual", kind: r.kind, title: r.title,
+    key: `ev:${r.id}`, sourceKey: `ev:${r.id}`, source: "manual", kind: r.kind, title: r.title, shortTitle: r.short_title,
     start: r.start, end: r.end, startTime: r.start_time, endTime: r.end_time,
     status: r.status, ownerId: r.owner_user_id, ownerName: r.owner_name, createdBy: r.created_by,
     href: h.href, hrefLabel: h.label, editable: canEdit(user, r), details: r.details, linkUrl: r.link_url,
@@ -180,7 +180,7 @@ export async function syncCalendarAlerts(user: CurrentUser): Promise<void> {
 export function conflictsIn(items: CalItem[]) { return findConflicts(items); }
 
 export type EditableEvent = {
-  id: string; title: string; kind: CalKind; start: string; end: string; allDay: boolean; startTime: string | null; endTime: string | null;
+  id: string; title: string; shortTitle: string | null; kind: CalKind; start: string; end: string; allDay: boolean; startTime: string | null; endTime: string | null;
   repeat: Repeat; repeatUntil: string | null; ownerId: string | null; status: CalStatus; remindMinutes: number | null;
   details: string | null; linkUrl: string | null; visibility: Visibility;
 };
@@ -194,7 +194,7 @@ export async function getEditableEvent(user: CurrentUser, id: string): Promise<E
   const r = rows[0] as ManualRow | undefined;
   if (!r || !canEdit(user, r)) return null;
   return {
-    id: r.id, title: r.title, kind: r.kind, start: r.start, end: r.end, allDay: r.all_day, startTime: r.start_time, endTime: r.end_time,
+    id: r.id, title: r.title, shortTitle: r.short_title, kind: r.kind, start: r.start, end: r.end, allDay: r.all_day, startTime: r.start_time, endTime: r.end_time,
     repeat: r.repeat, repeatUntil: r.repeat_until, ownerId: r.owner_user_id, status: r.status, remindMinutes: r.remind_minutes,
     details: r.details, linkUrl: r.link_url, visibility: r.visibility,
   };

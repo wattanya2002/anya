@@ -122,20 +122,28 @@ for (const [sku, name, cat, brand, sup, unit, pack, cost, price, rp, rq, qtys] o
 const d = (n) => { const x = new Date(`${bkkToday}T00:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
 await c.query("insert into campaigns (org_id, name, status, starts_on, ends_on, owner_user_id, created_by) values ($1,'Back to Court ปลายปี','live',$2,$3,$4,$4)", [org, d(-3), d(10), user]);
 await c.query("insert into promotions (org_id, name, code, status, discount_bps, starts_at, ends_at, created_by) values ($1,'โปรเช้าวันธรรมดา ลด 15%','AM15','pending_approval',1500,($2::date + time '06:00') at time zone 'Asia/Bangkok',($3::date + time '23:59') at time zone 'Asia/Bangkok',$4)", [org, d(5), d(19), user]);
+// Mirrors the Calendar RCM v1.1 masters (Day: four items today; Month: short labels across the month). Demo org only.
+const m = (day) => `${bkkToday.slice(0, 8)}${String(day).padStart(2, "0")}`;
 const ev = [
-  ["ประชุมทีมการตลาด", "appointment", d(0), d(0), "10:00", "11:00", "weekly", null, "team", "planned", 30],
-  ["นัดถ่ายคลิปรีวิวคอร์ท", "content", d(0), d(0), "10:30", "12:00", "none", null, "team", "planned", 60],
-  ["โพสต์ IG: โปรสมาชิกใหม่", "content", d(1), d(1), "18:00", null, "none", null, "team", "planned", null],
-  ["Wonder Courts Open (ทัวร์นาเมนต์)", "court_event", d(6), d(8), null, null, "none", null, "team", "planned", 1440],
-  ["ส่งรายงาน KPI รายสัปดาห์", "report", d(-2), d(-2), "17:00", null, "weekly", null, "team", "planned", null],
-  ["รับน้ำดื่มจากร้านส่งน้ำ", "stock", d(2), d(2), "09:00", "09:30", "none", null, "team", "planned", 60],
-  ["ประชุมผู้บริหาร: งบไตรมาส", "appointment", d(3), d(3), "14:00", "15:30", "none", null, "executive", "planned", null],
-  ["นัดคุยพาร์ตเนอร์ร้านอุปกรณ์", "appointment", d(-1), d(-1), "15:00", "16:00", "none", null, "private", "done", null],
+  // title, kind, start, end, startTime, endTime, repeat, until, visibility, status, remind, details, shortTitle
+  ["เริ่มโปรโมชั่น Off-Peak", "promotion", d(0), d(0), "09:00", "09:30", "none", null, "team", "planned", 30, "เปิดใช้งานโปรเฉพาะวันธรรมดา", "โปร Off-Peak"],
+  ["ถ่ายคอนเทนต์ : สนามเทนนิส", "content", d(0), d(0), "10:00", "11:30", "none", null, "team", "planned", 60, "ถ่ายคลิป Reels โปรใหม่", "ถ่ายคอนเทนต์"],
+  ["ประชุมแผนการตลาด", "appointment", d(0), d(0), "13:30", "14:30", "none", null, "team", "planned", 30, "สรุปแคมเปญเดือนนี้ และงบโฆษณา", "ประชุมการตลาด"],
+  ["ตรวจนับสต็อกเครื่องดื่ม", "stock", d(0), d(0), "15:30", "16:30", "none", null, "team", "planned", 60, "เช็กยอดคงเหลือและเตรียมสั่งซื้อ", "เช็กสต็อก"],
+  ["Wonder Courts แข่งขันประจำเดือน", "court_event", m(1), m(1), null, null, "none", null, "team", "done", null, null, "แข่งขัน"],
+  ["เช็กสต็อกอุปกรณ์", "stock", m(6), m(6), "10:00", "11:00", "none", null, "team", "planned", null, null, "เช็กสต็อก"],
+  ["ประชุมการตลาดประจำสัปดาห์", "appointment", m(12), m(12), "14:00", "15:00", "none", null, "team", "planned", 30, null, "ประชุมการตลาด"],
+  ["กิจกรรมครอบครัวที่คอร์ท", "court_event", m(14), m(14), null, null, "none", null, "team", "planned", 1440, null, "กิจกรรม"],
+  ["เริ่มโปรใหม่ลูกค้าสมาชิก", "promotion", m(19), m(19), "09:00", null, "none", null, "team", "planned", null, null, "เริ่มโปรใหม่"],
+  ["อบรมทีมหน้าคอร์ท", "appointment", m(21), m(21), "09:30", "12:00", "none", null, "team", "planned", null, null, "อบรมทีม"],
+  ["สั่งน้ำดื่มเพิ่ม", "stock", m(25), m(25), "09:00", "09:30", "none", null, "team", "planned", 60, null, "สั่งน้ำเพิ่ม"],
+  ["โปรวันหยุดสุดสัปดาห์", "promotion", m(29), m(29), null, null, "none", null, "team", "planned", null, null, "โปรวันหยุด"],
+  ["ประชุมผู้บริหาร: งบไตรมาส", "appointment", d(3), d(3), "14:00", "15:30", "none", null, "executive", "planned", null, null, "งบไตรมาส"],
 ];
-for (const [title, kind, s1, e1, st, et, rep, until, vis, status, remind] of ev) {
+for (const [title, kind, s1, e1, st, et, rep, until, vis, status, remind, details, short] of ev) {
   await c.query(
-    "insert into calendar_events (org_id, title, kind, starts_on, ends_on, all_day, start_time, end_time, repeat, repeat_until, owner_user_id, status, remind_minutes, visibility, created_by) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$11)",
-    [org, title, kind, s1, e1, st === null, st, et, rep, until, user, status, remind, vis]);
+    "insert into calendar_events (org_id, title, kind, starts_on, ends_on, all_day, start_time, end_time, repeat, repeat_until, owner_user_id, status, remind_minutes, visibility, created_by, details, short_title) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$11,$15,$16)",
+    [org, title, kind, s1, e1, st === null, st, et, rep, until, user, status, remind, vis, details, short]);
 }
 await c.query("insert into notifications (org_id, user_id, title, body) values ($1,$2,'มีคำขออนุมัติใหม่','โปรโมชั่นประจำเดือนรออนุมัติ')", [org, user]);
 await c.query("commit");

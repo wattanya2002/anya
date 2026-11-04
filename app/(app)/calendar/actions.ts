@@ -36,22 +36,22 @@ export async function saveCalendarEvent(_prev: FormState, form: FormData): Promi
   try {
     if (id && !(await getEditableEvent(u, id))) return { error: "ไม่พบรายการ หรือไม่มีสิทธิ์แก้ไข", fields };
     const values = [u.orgId, e.title, e.kind, e.start, e.end, e.allDay, e.startTime, e.endTime, e.repeat, e.repeatUntil,
-      e.ownerId, e.status, e.remindMinutes, e.details, e.linkUrl, e.visibility, u.id];
+      e.ownerId, e.status, e.remindMinutes, e.details, e.linkUrl, e.visibility, u.id, e.shortTitle];
     const savedId = await withTransaction(async (c) => {
       if (id) {
         const before = await c.query(`select * from calendar_events where id = $1 and org_id = $2 for update`, [id, u.orgId]);
         if (!before.rows[0]) throw new Error("not found");
         await c.query(
           `update calendar_events set title=$2, kind=$3, starts_on=$4, ends_on=$5, all_day=$6, start_time=$7, end_time=$8, repeat=$9, repeat_until=$10,
-                  owner_user_id=$11, status=$12, remind_minutes=$13, details=$14, link_url=$15, visibility=$16, updated_by=$17, updated_at=now()
-            where id=$18 and org_id=$1`, [...values, id]);
+                  owner_user_id=$11, status=$12, remind_minutes=$13, details=$14, link_url=$15, visibility=$16, updated_by=$17, short_title=$18, updated_at=now()
+            where id=$19 and org_id=$1`, [...values, id]);
         await audit(c, u, "calendar_event.updated", id, before.rows[0], e);
         return id;
       }
       const ins = await c.query(
         `insert into calendar_events (org_id, title, kind, starts_on, ends_on, all_day, start_time, end_time, repeat, repeat_until,
-                                      owner_user_id, status, remind_minutes, details, link_url, visibility, created_by)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) returning id`, values);
+                                      owner_user_id, status, remind_minutes, details, link_url, visibility, created_by, short_title)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) returning id`, values);
       await audit(c, u, "calendar_event.created", ins.rows[0].id, null, e);
       return ins.rows[0].id as string;
     });

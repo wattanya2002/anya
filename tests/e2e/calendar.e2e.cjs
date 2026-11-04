@@ -4,7 +4,7 @@ const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
 const BASE = process.env.BASE;
 const results = [];
-const check = async (name, fn) => { try { await fn(); results.push(["PASS", name]); } catch (e) { results.push(["FAIL", name, e.message.split("\n")[0]]); } };
+const check = async (name, fn) => { try { await fn(); results.push(["PASS", name]); } catch (e) { results.push(["FAIL", name, e.message.replace(/\n+/g, " ").slice(0, 300)]); } };
 const T = Date.now().toString(36).toUpperCase();
 const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
 
@@ -22,7 +22,7 @@ const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).for
   });
 
   await check("month view renders with week summary and colour legend", async () => {
-    await p.goto(`${BASE}/calendar`);
+    await p.goto(`${BASE}/calendar?view=month`);
     assert.equal(await p.locator(".seg a[aria-current=page]").innerText(), "เดือน");
     assert.ok(await p.locator(".cal-wk").count() >= 4);
     assert.match(await p.locator(".cal-side").innerText(), /ภาระงานสัปดาห์นี้[\s\S]*เวลาซ้อนกัน[\s\S]*สีของรายการ/);
@@ -100,7 +100,7 @@ const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).for
     await p.check("input[name=allDay]");
     await p.click(".cal-form button[type=submit]");
     await p.locator(".form-msg.ok").waitFor({ timeout: 10000 });
-    await p.goto(`${BASE}/calendar?date=${today}`);
+    await p.goto(`${BASE}/calendar?view=month&date=${today}`);
     const bars = p.locator(".cal-bar", { hasText: `ทัวร์นาเมนต์ ${T}` });
     const n = await bars.count();
     const spans = await bars.evaluateAll((els) => els.map((e) => Number((e.style.gridColumn.match(/span (\d+)/) || [0, 1])[1])));
@@ -139,20 +139,63 @@ const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).for
     assert.notEqual(await p.locator(".cal-period").innerText(), before);
   });
 
-  await check("iPhone: compact month, tap a day to list its items, page never scrolls", async () => {
+  await check("iPhone (RCM v1.1): Day is the default, view switch keeps the date, Month only selects, page never scrolls", async () => {
     const m = await b.newContext({ viewport: { width: 390, height: 844 }, storageState: await ctx.storageState(), isMobile: true, hasTouch: true });
     const mp = await m.newPage();
+    const scroll = () => mp.evaluate(() => [document.documentElement.scrollWidth - document.documentElement.clientWidth, document.documentElement.scrollHeight - document.documentElement.clientHeight]);
+    await mp.goto(`${BASE}/calendar`);
+    assert.ok(await mp.locator(".pd").isVisible(), "Day view is the default");
+    assert.equal(await mp.locator(".cal-mtitle").innerText(), "วันนี้");
+    const weekday = new Intl.DateTimeFormat("th-TH", { weekday: "long", timeZone: "Asia/Bangkok" }).format(new Date()).replace(/^วัน/, "");
+    assert.ok((await mp.locator(".cal-mcap").innerText()).startsWith(`${weekday},`), "weekday computed from the real date");
+    assert.equal(Number(await mp.locator(".pd-strip a[aria-current=date] .pd-num").innerText()), Number(today.slice(8)));
+    assert.ok(await mp.locator(".pd-fab").isVisible(), "FAB on Day");
+    assert.deepEqual(await scroll(), [0, 0]);
+    // Day -> Month keeps the selected date
+    const pick = today.slice(8) === "15" ? "16" : "15";
+    const target = `${today.slice(0, 8)}${pick}`;
+    await mp.goto(`${BASE}/calendar?date=${target}`);
+    await mp.click(".vp-btn"); await Promise.all([mp.waitForURL(/view=month/), mp.click(".vp-menu >> text=รายเดือน")]);
+    assert.match(mp.url(), new RegExp(`date=${target}`));
+    assert.equal(Number(await mp.locator(".pm-cell[aria-current=date] .pm-num").innerText()), Number(pick));
+    assert.equal(await mp.locator(".pd-fab").count(), 0, "no FAB on Month");
+    // equal columns / rows, bold dates, regular chips, nothing listed under the grid
+    const geo = await mp.locator(".pm-cell").evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width * 10), Math.round(r.height * 10)]; }));
+    assert.equal(new Set(geo.map((g) => g[0])).size, 1, "7 equal columns"); assert.equal(new Set(geo.map((g) => g[1])).size, 1, "equal row heights");
+    assert.equal(await mp.locator(".pm-cell:not(.out) .pm-num").first().evaluate((e) => getComputedStyle(e).fontWeight), "700");
+    if (await mp.locator(".pm-chip").count()) assert.equal(await mp.locator(".pm-chip").first().evaluate((e) => getComputedStyle(e).fontWeight), "400");
+    assert.equal(await mp.locator(".cal-dayagenda, .cal-sheet").count(), 0, "no agenda under the month");
+    // tapping a date only selects it
+    const other = `${today.slice(0, 8)}${pick === "15" ? "17" : "18"}`;
+    await Promise.all([mp.waitForURL(new RegExp(`date=${other}`)), mp.locator(`.pm-cell[href*="date=${other}"]`).click()]);
+    assert.match(mp.url(), /view=month/, "stays on Month");
+    assert.equal(Number(await mp.locator(".pm-cell.sel .pm-num").innerText()), Number(other.slice(8)));
+    assert.deepEqual(await scroll(), [0, 0]);
+    // Month -> Day keeps it too
+    await mp.click(".vp-btn"); await Promise.all([mp.waitForURL((u) => !u.searchParams.has("view")), mp.click(".vp-menu >> text=รายวัน")]);
+    assert.equal(Number(await mp.locator(".pd-strip a[aria-current=date] .pd-num").innerText()), Number(other.slice(8)));
+    // FAB opens the form as a sheet; native inputs at 16px; short title field
+    await Promise.all([mp.waitForURL(/new=1/), mp.click(".pd-fab")]);
+    assert.ok(await mp.locator(".cal-side #c-title").isVisible());
+    assert.equal(await mp.locator("#c-start").evaluate((e) => getComputedStyle(e).fontSize), "16px", "no iOS zoom on focus");
+    assert.equal(await mp.locator("#c-start").inputValue(), other, "start date = selected date");
+    assert.ok(await mp.locator("#c-short").isVisible());
+    await mp.keyboard.press("Escape"); await mp.waitForURL((u) => !u.searchParams.has("new"));
+    await m.close();
+  });
+
+  await check("iPhone: tapping a card opens its detail sheet; month cells stay inside their column at 375px", async () => {
+    const m = await b.newContext({ viewport: { width: 375, height: 812 }, storageState: await ctx.storageState(), isMobile: true, hasTouch: true });
+    const mp = await m.newPage();
     await mp.goto(`${BASE}/calendar?date=${today}`);
-    assert.ok(await mp.locator(".cal-pick").first().isVisible());
-    assert.equal(await mp.locator(".cal-bar").first().isVisible(), false);
-    await mp.locator(".cal-pick").nth(10).click(); await mp.waitForURL(/date=/);
-    assert.ok(await mp.locator(".cal-dayagenda").isVisible());
-    const sy = await mp.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight);
-    assert.ok(sy <= 0, `page scroll ${sy}`);
-    await mp.goto(`${BASE}/calendar?new=1`);
-    const fs = await mp.locator("#c-start").evaluate((e) => getComputedStyle(e).fontSize);
-    assert.equal(fs, "16px", "no iOS zoom on focus");
-    assert.ok(await mp.locator("#c-title").isVisible(), "form opens on its tab");
+    if (await mp.locator(".pd-link").count()) {
+      await Promise.all([mp.waitForURL(/item=|holiday=/), mp.locator(".pd-link").first().click()]);
+      assert.equal(await mp.locator(".cal-side").evaluate((e) => getComputedStyle(e).position), "fixed");
+      assert.ok(await mp.locator(".cal-side").isVisible());
+    }
+    await mp.goto(`${BASE}/calendar?view=month&date=${today}`);
+    const spill = await mp.locator(".pm-cell").evaluateAll((cells) => cells.filter((c) => [...c.querySelectorAll(".pm-chip")].some((ch) => { const a = c.getBoundingClientRect(), r = ch.getBoundingClientRect(); return r.left < a.left - 0.5 || r.right > a.right + 0.5; })).length);
+    assert.equal(spill, 0, "no chip spills into the next day");
     await m.close();
   });
 
@@ -165,7 +208,7 @@ const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).for
 
   await check("holidays: festival icon + colour in the month cell, detail shows the day colour", async () => {
     await p.setViewportSize({ width: 1440, height: 900 });
-    await p.goto(`${BASE}/calendar?date=2026-11-24`);
+    await p.goto(`${BASE}/calendar?view=month&date=2026-11-24`);
     const cell = p.locator(".cal-cell.hol", { has: p.locator(".cal-hol", { hasText: "วันลอยกระทง" }) });
     assert.equal(await cell.count(), 1);
     assert.equal(await cell.locator(".cal-hol svg").count(), 1, "festival icon");
@@ -178,27 +221,28 @@ const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).for
   });
 
   await check("holidays: day off is marked, compensation day listed, toggle hides them", async () => {
-    await p.goto(`${BASE}/calendar?date=2026-12-07`);
+    await p.goto(`${BASE}/calendar?view=month&date=2026-12-07`);
     assert.equal(await p.locator(".cal-cell.off").count() >= 4, true, "5, 7, 10, 31 Dec are days off");
     await p.goto(`${BASE}/calendar?view=agenda&date=2026-12-01`);
     assert.match(await p.locator(".cal-main").innerText(), /ชดเชยวันพ่อแห่งชาติ[\s\S]*หยุดราชการและธนาคาร/);
-    await p.goto(`${BASE}/calendar?date=2026-12-07&hol=0`);
+    await p.goto(`${BASE}/calendar?view=month&date=2026-12-07&hol=0`);
     assert.equal(await p.locator(".cal-cell.hol").count(), 0);
     assert.equal(await p.locator("input[name=hol][type=checkbox]").isChecked(), false);
   });
 
-  await check("holidays: iPhone compact month shows the icon, day list shows the holiday", async () => {
+  await check("holidays: iPhone month shows holiday chips, Day lists the holiday", async () => {
     const m = await b.newContext({ viewport: { width: 390, height: 844 }, storageState: await ctx.storageState() });
     const mp = await m.newPage();
+    await mp.goto(`${BASE}/calendar?view=month&date=2026-12-07`);
+    assert.ok(await mp.locator(".pm-chip.hol").count() >= 4);
     await mp.goto(`${BASE}/calendar?date=2026-12-07`);
-    assert.ok(await mp.locator(".cal-pick-hol").count() >= 4);
-    assert.match(await mp.locator(".cal-dayagenda").innerText(), /ชดเชยวันพ่อแห่งชาติ/);
+    assert.match(await mp.locator(".pd").innerText(), /ชดเชยวันพ่อแห่งชาติ/);
     assert.equal(await mp.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight), 0);
     await m.close();
   });
 
   await check("holidays: years without checked data show a notice instead of guessing", async () => {
-    await p.goto(`${BASE}/calendar?date=2028-03-01`);
+    await p.goto(`${BASE}/calendar?view=month&date=2028-03-01`);
     assert.equal(await p.locator(".cal-cell.hol").count(), 0);
     assert.match(await p.locator(".cal-side").innerText(), /ยังไม่มีข้อมูลวันหยุดปี 2571/);
   });

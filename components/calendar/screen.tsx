@@ -1,20 +1,22 @@
 import Link from "next/link";
-import { AlertTriangle, CalendarDays, CalendarHeart, ChartNoAxesColumn, Info, SlidersHorizontal, UserRound, ChevronLeft, ChevronRight, Clock, ExternalLink, Pencil, Plus, Trash2, Users, X } from "lucide-react";
+import { AlertTriangle, CalendarDays, CalendarHeart, UserRound, ChevronLeft, ChevronRight, Clock, ExternalLink, Pencil, Plus, Trash2, Users, X } from "lucide-react";
 import { can, type CurrentUser } from "@/lib/auth";
 import { bangkokToday } from "@/lib/dates";
 import { computeAlerts, getEditableEvent, listMembers, loadCalendarItems } from "@/lib/calendar";
 import {
   KIND_TH, KIND_TONE, MANUAL_KINDS, REPEAT_TH, STATUS_TH, VISIBILITY_TH, WEEKDAY_TH,
   addDays, applyFilters, dayColumns, findConflicts, isIsoDate, itemsOn, layoutWeek, minutesOf, monthWeeks, parseView, periodLabel,
-  rangeFor, shiftDate, thaiDate, timeLabel, weeklyWorkload, weekStart,
+  rangeFor, shiftDate, thaiDate, thaiLongDate, timeLabel, weeklyWorkload, weekStart,
   type CalItem, type CalKind, type CalStatus, type CalView, type ManualKind,
 } from "@/lib/calendar-core";
-import { MobileTabs } from "@/components/mobile-tabs";
 import {
   HOLIDAY_YEARS, OFF_TH, THEMES, TYPE_TH, endOf, findHoliday, holidayKey, holidaysIn, holidaysOn, isDayOff, missingYears, type Holiday,
 } from "@/lib/holidays-th";
 import { HolidayIcon } from "./holiday-icon";
+import { KindIcon } from "./kind-icon";
 import { FilterAutoSubmit } from "./filter-autosubmit";
+import { PhoneDay, PhoneMonth } from "./phone-views";
+import { SheetEscape, ViewPicker } from "./phone-client";
 import { EventForm } from "./event-form";
 import { deleteCalendarEvent, setCalendarEventStatus } from "@/app/(app)/calendar/actions";
 
@@ -25,7 +27,7 @@ const ALL_KINDS: CalKind[] = ["promotion", "campaign", "content", "appointment",
 const STATUSES: CalStatus[] = ["planned", "in_progress", "pending_approval", "overdue", "done", "cancelled"];
 
 type State = { view: CalView; date: string; kinds: CalKind[]; owner: string; status: string; mine: boolean; q: string; days: number; hol: boolean };
-type Patch = Partial<State> & { item?: string; new?: string; edit?: string; holiday?: string; k?: ManualKind };
+export type Patch = Partial<State> & { item?: string; new?: string; edit?: string; holiday?: string; k?: ManualKind; sheet?: "filter" | "summary" };
 
 /** Pastel tint + icon colour of a holiday, as CSS variables. */
 const holStyle = (h: Holiday) => {
@@ -53,7 +55,7 @@ export async function CalendarScreen({ user, searchParams, base, preset }: {
   const href = (patch: Patch = {}) => {
     const s = { ...st, ...patch };
     const p = new URLSearchParams();
-    if (s.view !== "month") p.set("view", s.view);
+    if (s.view !== "day") p.set("view", s.view);
     if (s.date !== today) p.set("date", s.date);
     if (!preset && s.kinds.length) p.set("type", s.kinds.join(","));
     if (s.owner) p.set("owner", s.owner);
@@ -65,6 +67,7 @@ export async function CalendarScreen({ user, searchParams, base, preset }: {
     if (patch.item) p.set("item", patch.item);
     if (patch.holiday) p.set("holiday", patch.holiday);
     if (patch.k) p.set("k", patch.k);
+    if (patch.sheet) p.set("sheet", patch.sheet);
     if (patch.new) p.set("new", patch.new);
     if (patch.edit) p.set("edit", patch.edit);
     const qs = p.toString();
@@ -95,16 +98,32 @@ export async function CalendarScreen({ user, searchParams, base, preset }: {
   const selected = itemKey ? all.find((i) => i.sourceKey === itemKey && i.start <= st.date && i.end >= st.date) ?? all.find((i) => i.sourceKey === itemKey) ?? null : null;
   const editing = manage && editId ? await getEditableEvent(user, editId) : null;
   const panel: "form" | "item" | "holiday" | "summary" = manage && (isNew || editing) ? "form" : itemKey ? "item" : holiday ? "holiday" : "summary";
-  const sideTab = panel === "form" ? `side-f-${editId || "new"}` : panel === "item" ? `side-i-${itemKey}-${st.date}` : panel === "holiday" ? `side-h-${holiday!.date}` : "side";
   const sideLabel = panel === "form" ? (editing ? "แก้ไขรายการ" : "เพิ่มรายการ") : panel === "item" ? "รายละเอียด" : panel === "holiday" ? "วันหยุด / เทศกาล" : "สรุปสัปดาห์";
   const closeHref = href();
   const conflicts = findConflicts(inRange);
   const workload = weeklyWorkload(items, st.date);
   const activeFilters = (preset ? 0 : st.kinds.length ? 1 : 0) + (st.owner ? 1 : 0) + (st.status ? 1 : 0) + (st.mine ? 1 : 0) + (st.q ? 1 : 0);
   const VIEW_TH: Record<CalView, string> = { month: "เดือน", week: "สัปดาห์", day: "วัน", agenda: "รายการ" };
+  // iPhone: the side card and the filters open as bottom sheets (RCM v1.1 §6.4, §3.5); the page itself never grows.
+  const sheetParam = one(searchParams.sheet);
+  const sheet: "" | "side" | "filter" = sheetParam === "filter" ? "filter" : panel !== "summary" || sheetParam === "summary" ? "side" : "";
+  const phoneTitle = preset ? preset.title : st.view === "month" ? "ปฏิทินรายเดือน" : st.date === today ? "วันนี้" : "ปฏิทินรายวัน";
 
   return (
-    <div className="cal" data-mscope="cal">
+    <div className="cal" data-mscope="cal" data-sheet={sheet || undefined} data-view={st.view}>
+      <div className="cal-mhead">
+        <div className="cal-mhead-text">
+          <p className="cal-mcap">{thaiLongDate(st.date)}</p>
+          <h1 className="cal-mtitle">{phoneTitle}</h1>
+        </div>
+        <ViewPicker label={st.view === "month" ? "รายเดือน" : "รายวัน"} showLabel={st.view === "month"} items={[
+          { href: href({ view: "day" }), label: "รายวัน", current: st.view === "day" },
+          { href: href({ view: "month" }), label: "รายเดือน", current: st.view === "month" },
+          { href: href({ date: today }), label: "ไปวันนี้", divider: true },
+          { href: href({ sheet: "filter" }), label: "ตัวกรอง", badge: activeFilters },
+          { href: href({ sheet: "summary" }), label: "สรุปสัปดาห์" },
+        ]} />
+      </div>
       <div className="cal-head">
         <h1 className="inv-title cal-title">
           <span className="badge-icon tone-pink" aria-hidden="true"><CalendarDays /></span>
@@ -125,16 +144,13 @@ export async function CalendarScreen({ user, searchParams, base, preset }: {
       </div>
 
       <div className="cal-body">
-        <MobileTabs scope="cal" compact label="เลือกการ์ด" defaultTab={panel === "summary" ? "main" : sideTab} tabs={[
-          { id: "main", label: "ปฏิทิน", icon: <CalendarDays aria-hidden="true" /> },
-          { id: sideTab, label: sideLabel, icon: panel === "form" ? (editing ? <Pencil aria-hidden="true" /> : <Plus aria-hidden="true" />)
-            : panel === "item" ? <Info aria-hidden="true" /> : panel === "holiday" ? <CalendarHeart aria-hidden="true" /> : <ChartNoAxesColumn aria-hidden="true" /> },
-          { id: "filter", label: activeFilters ? `ตัวกรอง (${activeFilters})` : "ตัวกรอง", icon: <SlidersHorizontal aria-hidden="true" />, badge: activeFilters },
-        ]} />
+        {sheet && <Link className="cal-backdrop" href={closeHref} scroll={false} aria-label="ปิด" />}
+        {sheet && <SheetEscape closeHref={closeHref} />}
 
-        <form className="cal-filters" id="cal-filters" action={base} role="search" data-tab="filter">
+        <form className="cal-filters" id="cal-filters" action={base} role="search" aria-label="ตัวกรองปฏิทิน">
           <FilterAutoSubmit formId="cal-filters" />
-          {st.view !== "month" && <input type="hidden" name="view" value={st.view} />}
+          <div className="cal-sheet-head"><h2>ตัวกรอง</h2><Link className="more" href={closeHref} scroll={false} aria-label="ปิดตัวกรอง"><X aria-hidden="true" /></Link></div>
+          {st.view !== "day" && <input type="hidden" name="view" value={st.view} />}
           {st.date !== today && <input type="hidden" name="date" value={st.date} />}
           {!preset && (
             <div className="field"><label htmlFor="cf-type" className="sr-only">ประเภท</label>
@@ -156,17 +172,21 @@ export async function CalendarScreen({ user, searchParams, base, preset }: {
           <label className="check" title="เฉพาะงานของฉัน"><input type="checkbox" name="mine" value="1" defaultChecked={st.mine} /><UserRound aria-hidden="true" className="chk-ic" /><span className="chk-lbl">งานของฉัน</span></label>
           <label className="check" title="แสดงวันหยุดและเทศกาล"><input type="checkbox" name="hol" value="1" defaultChecked={st.hol} /><input type="hidden" name="hol" value="0" /><CalendarHeart aria-hidden="true" className="chk-ic" /><span className="chk-lbl">วันหยุด / เทศกาล</span></label>
           <button className="btn-pill cal-apply" type="submit">กรอง</button>
-          {activeFilters > 0 && <Link className="cal-clear" href={`${base}${st.view !== "month" ? `?view=${st.view}` : ""}`} title="ล้างตัวกรอง"><X aria-hidden="true" /><span className="chk-lbl">ล้างตัวกรอง</span></Link>}
+          {activeFilters > 0 && <Link className="cal-clear" href={`${base}${st.view !== "day" ? `?view=${st.view}` : ""}`} title="ล้างตัวกรอง"><X aria-hidden="true" /><span className="chk-lbl">ล้างตัวกรอง</span></Link>}
         </form>
 
-        <article className="card panel cal-main" data-tab="main" aria-label={`ปฏิทินมุมมอง${VIEW_TH[st.view]}`}>
+        <article className="card panel cal-main" aria-label={`ปฏิทินมุมมอง${VIEW_TH[st.view]}`}>
+          {st.view === "day" && <PhoneDay items={items} hols={hols} date={st.date} today={today} href={href} manage={manage} selectedKey={itemKey} canTasks={can(user, "tasks.manage")} />}
+          {st.view === "month" && <PhoneMonth items={items} hols={hols} date={st.date} today={today} href={href} />}
           {st.view === "month" && <MonthView items={items} hols={hols} st={st} today={today} href={href} />}
           {st.view === "week" && <WeekView items={items} hols={hols} st={st} today={today} href={href} />}
           {st.view === "day" && <DayView items={items} hols={hols} st={st} href={href} />}
           {st.view === "agenda" && <AgendaView items={inRange} hols={hols} range={range} today={today} href={href} />}
         </article>
 
-        <aside className="card panel cal-side" data-tab={sideTab} aria-label={sideLabel}>
+        <aside className="card panel cal-side" aria-label={sideLabel}>
+          <span className="cal-grab" aria-hidden="true" />
+          {sheet === "side" && panel === "summary" && <Link className="more cal-sheet-x" href={closeHref} scroll={false} aria-label="ปิดสรุปสัปดาห์"><X aria-hidden="true" /></Link>}
           {panel === "form" ? (
             <>
               <div className="panel-head">
@@ -192,7 +212,7 @@ export async function CalendarScreen({ user, searchParams, base, preset }: {
   );
 }
 
-type Href = (patch?: Patch) => string;
+export type Href = (patch?: Patch) => string;
 
 function Chip({ item, href, showTime = true, className = "" }: { item: CalItem; href: Href; showTime?: boolean; className?: string }) {
   return (
@@ -207,11 +227,6 @@ function Chip({ item, href, showTime = true, className = "" }: { item: CalItem; 
 function MonthView({ items, hols, st, today, href }: { items: CalItem[]; hols: Holiday[]; st: State; today: string; href: Href }) {
   const weeks = monthWeeks(st.date);
   const month = st.date.slice(0, 7);
-  const last = weeks[weeks.length - 1][6];
-  const sheetDays: string[] = [];
-  for (let d = st.date; d <= last && sheetDays.length < 21; d = addDays(d, 1)) sheetDays.push(d);
-  const sheet = sheetDays.map((d) => ({ d, on: itemsOn(items, d), hs: holidaysOn(hols, d) }))
-    .filter((g, k) => k === 0 || g.on.length || g.hs.length);
   return (
     <div className="cal-month" style={{ ["--weeks" as string]: weeks.length }}>
       <div className="cal-wd" aria-hidden="true">{WEEKDAY_TH.map((d, i) => <span key={d} className={i >= 5 ? "we" : undefined}>{d}</span>)}</div>
@@ -262,16 +277,6 @@ function MonthView({ items, hols, st, today, href }: { items: CalItem[]; hols: H
           );
         })}
       </div>
-      <section className="cal-dayagenda cal-sheet" aria-label={`รายการตั้งแต่วันที่ ${thaiDate(st.date)}`}>
-        <span className="cal-grab" aria-hidden="true" />
-        {sheet.map((g, k) => (
-          <div key={g.d} className="cal-sheet-day">
-            <h2 className={g.d === today ? "today" : undefined}>{thaiDate(g.d, { weekday: true })}{g.d === today ? <small> · วันนี้</small> : null}</h2>
-            <HolidayRows list={g.hs} href={href} />
-            <AgendaRows items={g.on} href={href} compact empty={k === 0 && !g.hs.length ? "ไม่มีรายการในวันนี้" : undefined} />
-          </div>
-        ))}
-      </section>
     </div>
   );
 }
@@ -461,7 +466,7 @@ function ItemDetail({ item, closeHref, editHref, back }: { item: CalItem | null;
   return (
     <>
       <div className="panel-head">
-        <span className={`badge-icon tone-${KIND_TONE[item.kind]}`} aria-hidden="true"><CalendarDays /></span>
+        <span className={`badge-icon tone-${KIND_TONE[item.kind]}`} aria-hidden="true"><KindIcon kind={item.kind} /></span>
         <div className="panel-head-text"><h2 className="panel-title">{item.title}</h2>
           <p className="panel-sub">{KIND_TH[item.kind]} · {item.source === "manual" ? "เพิ่มในปฏิทิน" : "ดึงจากโมดูลต้นทางอัตโนมัติ"}</p></div>
         <Link className="more" href={closeHref} aria-label="ปิด"><X aria-hidden="true" /></Link>
