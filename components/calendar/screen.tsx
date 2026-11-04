@@ -10,6 +10,10 @@ import {
   type CalItem, type CalKind, type CalStatus, type CalView, type ManualKind,
 } from "@/lib/calendar-core";
 import { MobileTabs } from "@/components/mobile-tabs";
+import {
+  HOLIDAY_YEARS, OFF_TH, THEMES, TYPE_TH, endOf, findHoliday, holidayKey, holidaysIn, holidaysOn, isDayOff, missingYears, type Holiday,
+} from "@/lib/holidays-th";
+import { HolidayIcon } from "./holiday-icon";
 import { EventForm } from "./event-form";
 import { deleteCalendarEvent, setCalendarEventStatus } from "@/app/(app)/calendar/actions";
 
@@ -19,7 +23,14 @@ const MAX_LANES = 3;
 const ALL_KINDS: CalKind[] = ["promotion", "campaign", "content", "appointment", "general", "task", "stock", "court_event", "report", "followup"];
 const STATUSES: CalStatus[] = ["planned", "in_progress", "pending_approval", "overdue", "done", "cancelled"];
 
-type State = { view: CalView; date: string; kinds: CalKind[]; owner: string; status: string; mine: boolean; q: string; days: number };
+type State = { view: CalView; date: string; kinds: CalKind[]; owner: string; status: string; mine: boolean; q: string; days: number; hol: boolean };
+type Patch = Partial<State> & { item?: string; new?: string; edit?: string; holiday?: string; k?: ManualKind };
+
+/** Pastel tint + icon colour of a holiday, as CSS variables. */
+const holStyle = (h: Holiday) => {
+  const t = THEMES[h.theme];
+  return { ["--hb" as string]: t.bg, ["--hf" as string]: t.fg, ["--hd" as string]: t.dot };
+};
 
 export async function CalendarScreen({ user, searchParams, base, preset }: {
   user: CurrentUser; searchParams: SP; base: string; preset?: { kind: ManualKind; title: string; sub: string };
@@ -36,8 +47,9 @@ export async function CalendarScreen({ user, searchParams, base, preset }: {
     mine: one(searchParams.mine) === "1",
     q: one(searchParams.q).slice(0, 80),
     days: [7, 30, 90].includes(Number(one(searchParams.days))) ? Number(one(searchParams.days)) : 30,
+    hol: one(searchParams.hol) !== "0",
   };
-  const href = (patch: Partial<State> & { item?: string; new?: string; edit?: string } = {}) => {
+  const href = (patch: Patch = {}) => {
     const s = { ...st, ...patch };
     const p = new URLSearchParams();
     if (s.view !== "month") p.set("view", s.view);
@@ -48,7 +60,10 @@ export async function CalendarScreen({ user, searchParams, base, preset }: {
     if (s.mine) p.set("mine", "1");
     if (s.q) p.set("q", s.q);
     if (s.view === "agenda" && s.days !== 30) p.set("days", String(s.days));
+    if (!s.hol) p.set("hol", "0");
     if (patch.item) p.set("item", patch.item);
+    if (patch.holiday) p.set("holiday", patch.holiday);
+    if (patch.k) p.set("k", patch.k);
     if (patch.new) p.set("new", patch.new);
     if (patch.edit) p.set("edit", patch.edit);
     const qs = p.toString();
@@ -65,15 +80,22 @@ export async function CalendarScreen({ user, searchParams, base, preset }: {
   const filters = { kinds: st.kinds, owner: st.owner || null, status: (st.status || null) as CalStatus | null, mine: st.mine, q: st.q };
   const items = applyFilters(all, filters, user.id);
   const inRange = items.filter((i) => i.start <= range.to && i.end >= range.from);
+  // Holidays are calendar context: other filters keep them, a search narrows them by name.
+  const hols = st.hol ? holidaysIn(from, to).filter((h) => !st.q.trim() || h.name.toLowerCase().includes(st.q.trim().toLowerCase())) : [];
+  const upcoming = st.hol ? holidaysIn(today, addDays(today, 60)).filter((h) => h.date >= today || endOf(h) >= today).slice(0, 5) : [];
+  const noHolidayData = st.hol ? missingYears(range.from, range.to) : [];
 
   const itemKey = one(searchParams.item);
   const editId = one(searchParams.edit);
   const isNew = one(searchParams.new) === "1";
+  const holiday = findHoliday(one(searchParams.holiday));
+  const kParam = one(searchParams.k) as ManualKind;
+  const newKind = preset?.kind ?? ((MANUAL_KINDS as readonly string[]).includes(kParam) ? kParam : undefined);
   const selected = itemKey ? all.find((i) => i.sourceKey === itemKey && i.start <= st.date && i.end >= st.date) ?? all.find((i) => i.sourceKey === itemKey) ?? null : null;
   const editing = manage && editId ? await getEditableEvent(user, editId) : null;
-  const panel: "form" | "item" | "summary" = manage && (isNew || editing) ? "form" : itemKey ? "item" : "summary";
-  const sideTab = panel === "form" ? `side-f-${editId || "new"}` : panel === "item" ? `side-i-${itemKey}-${st.date}` : "side";
-  const sideLabel = panel === "form" ? (editing ? "แก้ไขรายการ" : "เพิ่มรายการ") : panel === "item" ? "รายละเอียด" : "สรุปสัปดาห์";
+  const panel: "form" | "item" | "holiday" | "summary" = manage && (isNew || editing) ? "form" : itemKey ? "item" : holiday ? "holiday" : "summary";
+  const sideTab = panel === "form" ? `side-f-${editId || "new"}` : panel === "item" ? `side-i-${itemKey}-${st.date}` : panel === "holiday" ? `side-h-${holiday!.date}` : "side";
+  const sideLabel = panel === "form" ? (editing ? "แก้ไขรายการ" : "เพิ่มรายการ") : panel === "item" ? "รายละเอียด" : panel === "holiday" ? "วันหยุด / เทศกาล" : "สรุปสัปดาห์";
   const closeHref = href();
   const conflicts = findConflicts(inRange);
   const workload = weeklyWorkload(items, st.date);
@@ -127,15 +149,16 @@ export async function CalendarScreen({ user, searchParams, base, preset }: {
           <div className="field grow"><label htmlFor="cf-q">ค้นหา</label>
             <input id="cf-q" name="q" type="search" placeholder="ชื่อรายการ / รายละเอียด" defaultValue={st.q} /></div>
           <label className="check"><input type="checkbox" name="mine" value="1" defaultChecked={st.mine} /> เฉพาะงานของฉัน</label>
+          <label className="check"><input type="checkbox" name="hol" value="1" defaultChecked={st.hol} /><input type="hidden" name="hol" value="0" /> แสดงวันหยุด / เทศกาล</label>
           <button className="btn-pill" type="submit">กรอง</button>
           {activeFilters > 0 && <Link className="link-btn small" href={`${base}${st.view !== "month" ? `?view=${st.view}` : ""}`}>ล้างตัวกรอง</Link>}
         </form>
 
         <article className="card panel cal-main" data-tab="main" aria-label={`ปฏิทินมุมมอง${VIEW_TH[st.view]}`}>
-          {st.view === "month" && <MonthView items={items} st={st} today={today} href={href} />}
-          {st.view === "week" && <WeekView items={items} st={st} today={today} href={href} />}
-          {st.view === "day" && <DayView items={items} st={st} href={href} />}
-          {st.view === "agenda" && <AgendaView items={inRange} range={range} today={today} href={href} />}
+          {st.view === "month" && <MonthView items={items} hols={hols} st={st} today={today} href={href} />}
+          {st.view === "week" && <WeekView items={items} hols={hols} st={st} today={today} href={href} />}
+          {st.view === "day" && <DayView items={items} hols={hols} st={st} href={href} />}
+          {st.view === "agenda" && <AgendaView items={inRange} hols={hols} range={range} today={today} href={href} />}
         </article>
 
         <aside className="card panel cal-side" data-tab={sideTab} aria-label={sideLabel}>
@@ -147,14 +170,16 @@ export async function CalendarScreen({ user, searchParams, base, preset }: {
                 <Link className="more" href={closeHref} aria-label="ปิด"><X aria-hidden="true" /></Link>
               </div>
               <div className="card-body">
-                <EventForm event={editing} members={members} me={user.id} defaultDate={st.date} defaultKind={preset?.kind}
+                <EventForm event={editing} members={members} me={user.id} defaultDate={st.date} defaultKind={newKind}
                   canFollowup={can(user, "crm.followup")} canExecutive={can(user, "calendar.view_executive")} />
               </div>
             </>
+          ) : panel === "holiday" ? (
+            <HolidayDetail h={holiday!} closeHref={closeHref} href={href} manage={manage} />
           ) : panel === "item" ? (
             <ItemDetail item={selected} closeHref={closeHref} editHref={selected?.editable ? href({ edit: selected.sourceKey.slice(3) }) : null} back={closeHref} />
           ) : (
-            <Summary workload={workload} alerts={alerts} conflicts={conflicts} href={href} />
+            <Summary workload={workload} alerts={alerts} conflicts={conflicts} href={href} upcoming={upcoming} noHolidayData={noHolidayData} showHolidays={st.hol} />
           )}
         </aside>
       </div>
@@ -162,7 +187,7 @@ export async function CalendarScreen({ user, searchParams, base, preset }: {
   );
 }
 
-type Href = (patch?: Partial<State> & { item?: string; new?: string; edit?: string }) => string;
+type Href = (patch?: Patch) => string;
 
 function Chip({ item, href, showTime = true, className = "" }: { item: CalItem; href: Href; showTime?: boolean; className?: string }) {
   return (
@@ -174,10 +199,11 @@ function Chip({ item, href, showTime = true, className = "" }: { item: CalItem; 
   );
 }
 
-function MonthView({ items, st, today, href }: { items: CalItem[]; st: State; today: string; href: Href }) {
+function MonthView({ items, hols, st, today, href }: { items: CalItem[]; hols: Holiday[]; st: State; today: string; href: Href }) {
   const weeks = monthWeeks(st.date);
   const month = st.date.slice(0, 7);
   const dayItems = itemsOn(items, st.date);
+  const dayHols = holidaysOn(hols, st.date);
   return (
     <div className="cal-month" style={{ ["--weeks" as string]: weeks.length }}>
       <div className="cal-wd" aria-hidden="true">{WEEKDAY_TH.map((d) => <span key={d}>{d}</span>)}</div>
@@ -189,12 +215,27 @@ function MonthView({ items, st, today, href }: { items: CalItem[]; st: State; to
             <div className="cal-wk" key={week[0]}>
               {week.map((d, c) => {
                 const on = itemsOn(items, d);
+                const hs = holidaysOn(hols, d);
+                const h0 = hs[0];
+                const holLabel = hs.length ? ` · ${hs.map((h) => h.name).join(", ")}` : "";
                 return (
-                  <div key={d} className={`cal-cell${d.slice(0, 7) !== month ? " out" : ""}${d === today ? " today" : ""}${d === st.date ? " sel" : ""}`} style={{ gridColumn: c + 1 }}>
-                    <Link className="cal-dnum" href={href({ view: "day", date: d })} aria-label={`${thaiDate(d, { weekday: true })} · ${on.length} รายการ`}>{Number(d.slice(8))}</Link>
-                    <Link className="cal-pick" href={href({ date: d })} aria-label={`เลือก ${thaiDate(d, { weekday: true })} · ${on.length} รายการ`}>
+                  <div key={d} className={`cal-cell${d.slice(0, 7) !== month ? " out" : ""}${d === today ? " today" : ""}${d === st.date ? " sel" : ""}${h0 ? " hol" : ""}${isDayOff(hs) ? " off" : ""}`}
+                    style={{ gridColumn: c + 1, ...(h0 ? holStyle(h0) : {}) }}>
+                    <div className="cal-cell-top">
+                      <Link className="cal-dnum" href={href({ view: "day", date: d })} aria-label={`${thaiDate(d, { weekday: true })}${holLabel} · ${on.length} รายการ`}>{Number(d.slice(8))}</Link>
+                      {h0 && (
+                        <Link className="cal-hol" href={href({ holiday: holidayKey(h0), date: d })} title={hs.map((h) => h.name).join(" · ")}>
+                          <HolidayIcon theme={h0.theme} className="cal-hol-ic" /><span className="cal-hol-name">{h0.name}</span>
+                          {hs.length > 1 && <b className="cal-hol-more">+{hs.length - 1}</b>}
+                        </Link>
+                      )}
+                    </div>
+                    <Link className="cal-pick" href={href({ date: d })} aria-label={`เลือก ${thaiDate(d, { weekday: true })}${holLabel} · ${on.length} รายการ`}>
                       <span className="cal-pick-num">{Number(d.slice(8))}</span>
-                      <span className="cal-dots" aria-hidden="true">{on.slice(0, 3).map((i) => <i key={i.key} className={`tone-${KIND_TONE[i.kind]}`} />)}</span>
+                      <span className="cal-dots" aria-hidden="true">
+                        {h0 && <HolidayIcon theme={h0.theme} className="cal-pick-hol" />}
+                        {on.slice(0, h0 ? 2 : 3).map((i) => <i key={i.key} className={`tone-${KIND_TONE[i.kind]}`} />)}
+                      </span>
                     </Link>
                     {hidden[c] > 0 && <Link className="cal-more" href={href({ view: "day", date: d })}>+{hidden[c]} รายการ</Link>}
                   </div>
@@ -215,13 +256,14 @@ function MonthView({ items, st, today, href }: { items: CalItem[]; st: State; to
       </div>
       <section className="cal-dayagenda" aria-label={`รายการวันที่ ${thaiDate(st.date)}`}>
         <h2>{thaiDate(st.date, { weekday: true, year: true })} <small>({dayItems.length} รายการ)</small></h2>
-        <AgendaRows items={dayItems} href={href} empty="ไม่มีรายการในวันนี้" />
+        <HolidayRows list={dayHols} href={href} />
+        <AgendaRows items={dayItems} href={href} empty={dayHols.length ? undefined : "ไม่มีรายการในวันนี้"} />
       </section>
     </div>
   );
 }
 
-function WeekView({ items, st, today, href }: { items: CalItem[]; st: State; today: string; href: Href }) {
+function WeekView({ items, hols, st, today, href }: { items: CalItem[]; hols: Holiday[]; st: State; today: string; href: Href }) {
   const ws = weekStart(st.date);
   const days = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
   const banner = items.filter((i) => !i.startTime || i.start !== i.end);
@@ -231,11 +273,20 @@ function WeekView({ items, st, today, href }: { items: CalItem[]; st: State; tod
   return (
     <div className="cal-weekview">
       <div className="cal-wv-grid" style={{ ["--lanes" as string]: lanes }}>
-        {days.map((d, c) => (
-          <Link key={d} className={`cal-wv-day${d === today ? " today" : ""}`} style={{ gridColumn: c + 1 }} href={href({ view: "day", date: d })}>
-            <span>{WEEKDAY_TH[c]}</span><b>{Number(d.slice(8))}</b>
-          </Link>
-        ))}
+        {days.map((d, c) => {
+          const hs = holidaysOn(hols, d);
+          const h0 = hs[0];
+          return (
+            <div key={d} className={`cal-wv-day${d === today ? " today" : ""}${h0 ? " hol" : ""}${isDayOff(hs) ? " off" : ""}`} style={{ gridColumn: c + 1, ...(h0 ? holStyle(h0) : {}) }}>
+              <Link className="cal-wv-date" href={href({ view: "day", date: d })}><span>{WEEKDAY_TH[c]}</span><b>{Number(d.slice(8))}</b></Link>
+              {h0 && (
+                <Link className="cal-hol" href={href({ holiday: holidayKey(h0), date: d })} title={hs.map((h) => h.name).join(" · ")}>
+                  <HolidayIcon theme={h0.theme} className="cal-hol-ic" /><span className="cal-hol-name">{h0.name}</span>
+                </Link>
+              )}
+            </div>
+          );
+        })}
         {segs.map((s) => (
           <Link key={s.item.key} className={`cal-bar tone-${KIND_TONE[s.item.kind]} st-${s.item.status}${s.fromBefore ? " cont-l" : ""}${s.toAfter ? " cont-r" : ""}`}
             style={{ gridColumn: `${s.col + 1} / span ${s.span}`, gridRow: s.lane + 2 }} href={href({ item: s.item.sourceKey, date: s.item.start < ws ? ws : s.item.start })}>
@@ -254,7 +305,8 @@ function WeekView({ items, st, today, href }: { items: CalItem[]; st: State; tod
           return (
             <section key={d} className={`cal-ag-day${d === today ? " today" : ""}`}>
               <h3><Link href={href({ view: "day", date: d })}>{thaiDate(d, { weekday: true })}</Link> <small>{on.length ? `${on.length} รายการ` : ""}</small></h3>
-              <AgendaRows items={on} href={href} empty="—" />
+              <HolidayRows list={holidaysOn(hols, d)} href={href} />
+              <AgendaRows items={on} href={href} empty={holidaysOn(hols, d).length ? undefined : "—"} />
             </section>
           );
         })}
@@ -263,7 +315,7 @@ function WeekView({ items, st, today, href }: { items: CalItem[]; st: State; tod
   );
 }
 
-function DayView({ items, st, href }: { items: CalItem[]; st: State; href: Href }) {
+function DayView({ items, hols, st, href }: { items: CalItem[]; hols: Holiday[]; st: State; href: Href }) {
   const on = itemsOn(items, st.date);
   const allDay = on.filter((i) => !i.startTime || i.start !== i.end);
   const timedSameDay = on.filter((i) => i.startTime && i.start === i.end);
@@ -276,7 +328,11 @@ function DayView({ items, st, href }: { items: CalItem[]; st: State; href: Href 
     <div className="cal-dayview">
       <div className="cal-allday">
         <span className="cal-allday-label">ทั้งวัน / หลายวัน</span>
-        <div className="cal-allday-items">{allDay.length ? allDay.map((i) => <Chip key={i.key} item={i} href={href} showTime={false} />) : <span className="muted small">—</span>}</div>
+        <div className="cal-allday-items">
+          {holidaysOn(hols, st.date).map((h) => <HolidayChip key={holidayKey(h)} h={h} href={href} day={st.date} />)}
+          {allDay.map((i) => <Chip key={i.key} item={i} href={href} showTime={false} />)}
+          {!allDay.length && !holidaysOn(hols, st.date).length && <span className="muted small">—</span>}
+        </div>
       </div>
       <div className="cal-timeline" style={{ height: (last - first + 1) * 60 * PX }}>
         {hours.map((h) => (
@@ -293,10 +349,14 @@ function DayView({ items, st, href }: { items: CalItem[]; st: State; href: Href 
   );
 }
 
-function AgendaView({ items, range, today, href }: { items: CalItem[]; range: { from: string; to: string }; today: string; href: Href }) {
+function AgendaView({ items, hols, range, today, href }: { items: CalItem[]; hols: Holiday[]; range: { from: string; to: string }; today: string; href: Href }) {
   const days: string[] = [];
   for (let d = range.from; d <= range.to; d = addDays(d, 1)) days.push(d);
-  const groups = days.map((d) => ({ d, on: itemsOn(items, d).filter((i) => i.start === d || d === range.from) })).filter((g) => g.on.length);
+  const groups = days.map((d) => ({
+    d,
+    on: itemsOn(items, d).filter((i) => i.start === d || d === range.from),
+    hs: holidaysOn(hols, d).filter((h) => h.date === d || d === range.from),
+  })).filter((g) => g.on.length || g.hs.length);
   return (
     <div className="cal-agenda">
       {groups.length === 0 ? (
@@ -304,6 +364,7 @@ function AgendaView({ items, range, today, href }: { items: CalItem[]; range: { 
       ) : groups.map((g) => (
         <section key={g.d} className={`cal-ag-day${g.d === today ? " today" : ""}`}>
           <h3>{thaiDate(g.d, { weekday: true, year: true })}{g.d === today ? <small> · วันนี้</small> : null}</h3>
+          <HolidayRows list={g.hs} href={href} />
           <AgendaRows items={g.on} href={href} />
         </section>
       ))}
@@ -383,8 +444,9 @@ function ItemDetail({ item, closeHref, editHref, back }: { item: CalItem | null;
   );
 }
 
-function Summary({ workload: w, alerts, conflicts, href }: {
+function Summary({ workload: w, alerts, conflicts, href, upcoming, noHolidayData, showHolidays }: {
   workload: ReturnType<typeof weeklyWorkload>; alerts: Awaited<ReturnType<typeof computeAlerts>>; conflicts: [CalItem, CalItem][]; href: Href;
+  upcoming: Holiday[]; noHolidayData: number[]; showHolidays: boolean;
 }) {
   const max = Math.max(1, ...w.perDay.map((d) => d.count));
   return (
@@ -430,11 +492,78 @@ function Summary({ workload: w, alerts, conflicts, href }: {
           </ul>
         )}
 
+        {showHolidays && (
+          <>
+            <h3 className="cal-sub-h">วันหยุดและเทศกาลที่กำลังจะถึง</h3>
+            {upcoming.length === 0 ? <p className="muted small">ไม่มีใน 60 วันข้างหน้า</p> : <HolidayRows list={upcoming} href={href} withDate />}
+            {noHolidayData.length > 0 && (
+              <p className="muted small">ยังไม่มีข้อมูลวันหยุดปี {noHolidayData.map((y) => y + 543).join(", ")} (มีข้อมูลปี {HOLIDAY_YEARS.map((y) => y + 543).join(", ")}) จะเพิ่มเมื่อมีประกาศทางการ</p>
+            )}
+          </>
+        )}
+
         <h3 className="cal-sub-h">สีของรายการ</h3>
         <ul className="cal-legend">
           {(["promotion", "content", "appointment", "stock", "general"] as const).map((k) => <li key={k}><i className={`tone-${KIND_TONE[k]}`} />{k === "general" ? "งาน / รายงาน" : KIND_TH[k]}</li>)}
         </ul>
+        {showHolidays && <p className="muted small">วันหยุดและเทศกาลแสดงด้วยไอคอนและสีประจำเทศกาล วันที่เป็นวันหยุดราชการหรือธนาคาร ตัวเลขวันที่จะเป็นสีของเทศกาลนั้น</p>}
         <p className="muted small">รายการจากโปรโมชั่น แคมเปญ งานพร้อม Deadline และสต็อกที่ต้องสั่ง ขึ้นอัตโนมัติจากโมดูลต้นทาง</p>
+      </div>
+    </>
+  );
+}
+
+function HolidayChip({ h, href, day }: { h: Holiday; href: Href; day: string }) {
+  return (
+    <Link className="cal-chip cal-hol-chip" style={holStyle(h)} href={href({ holiday: holidayKey(h), date: day })} title={`${h.name} · ${TYPE_TH[h.type]}`}>
+      <HolidayIcon theme={h.theme} className="cal-hol-ic" /><span className="cal-chip-title">{h.name}</span>
+    </Link>
+  );
+}
+
+function HolidayRows({ list, href, withDate = false }: { list: Holiday[]; href: Href; withDate?: boolean }) {
+  if (!list.length) return null;
+  return (
+    <ul className="cal-rows cal-hol-rows">
+      {list.map((h) => (
+        <li key={holidayKey(h)}>
+          <Link className="cal-row" style={holStyle(h)} href={href({ holiday: holidayKey(h), date: h.date })}>
+            <span className="cal-hol-badge" aria-hidden="true"><HolidayIcon theme={h.theme} /></span>
+            <span className="cal-row-time">{withDate || h.end ? (h.end ? `${thaiDate(h.date)}–${thaiDate(h.end)}` : thaiDate(h.date, { weekday: !withDate })) : "ทั้งวัน"}</span>
+            <span className="cal-row-main"><span className="cal-row-title">{h.name}</span>
+              <span className="cal-row-sub">{h.off ? OFF_TH[h.off] : TYPE_TH[h.type]}{h.pending ? " · รอมติ ครม." : ""}</span></span>
+            <span className={`cal-status hol-type t-${h.type}`}>{h.off && !h.pending ? "วันหยุด" : TYPE_TH[h.type]}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function HolidayDetail({ h, closeHref, href, manage }: { h: Holiday; closeHref: string; href: Href; manage: boolean }) {
+  const t = THEMES[h.theme];
+  return (
+    <>
+      <div className="panel-head" style={holStyle(h)}>
+        <span className="badge-icon cal-hol-badge lg" aria-hidden="true"><HolidayIcon theme={h.theme} /></span>
+        <div className="panel-head-text"><h2 className="panel-title">{h.name}</h2>
+          <p className="panel-sub">{TYPE_TH[h.type]} · ข้อมูลอ้างอิงจากปฏิทินทางการ</p></div>
+        <Link className="more" href={closeHref} aria-label="ปิด"><X aria-hidden="true" /></Link>
+      </div>
+      <div className="card-body">
+        <dl className="cal-dl">
+          <dt>วันที่</dt><dd>{h.end ? `${thaiDate(h.date, { weekday: true })} – ${thaiDate(h.end, { weekday: true, year: true })}` : thaiDate(h.date, { weekday: true, year: true })}</dd>
+          <dt>การหยุด</dt><dd>{h.off ? OFF_TH[h.off] : "ไม่ใช่วันหยุดราชการ"}{h.pending ? " · รอมติคณะรัฐมนตรี" : ""}</dd>
+          <dt>สีประจำวัน</dt><dd><span className="cal-swatch" style={holStyle(h)} aria-hidden="true" /> {t.colorTh}</dd>
+        </dl>
+        <p className="cal-details">{t.why}{h.note ? `\n${h.note}` : ""}</p>
+        {manage && (
+          <div className="cal-actions">
+            <Link className="btn-pill primary" href={href({ new: "1", date: h.date, k: "content", holiday: undefined })}><Plus aria-hidden="true" />วางแผนคอนเทนต์วันนี้</Link>
+            <Link className="btn-pill" href={href({ new: "1", date: h.date, k: "promotion", holiday: undefined })}><Plus aria-hidden="true" />วางแผนโปรโมชั่น</Link>
+          </div>
+        )}
+        <p className="muted small">วันหยุดของบริษัทเอกชนขึ้นกับประกาศของแต่ละที่ ข้อมูลนี้อ้างอิงมติคณะรัฐมนตรีและประกาศธนาคารแห่งประเทศไทย</p>
       </div>
     </>
   );

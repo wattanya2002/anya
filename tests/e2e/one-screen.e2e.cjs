@@ -10,7 +10,7 @@ const { chromium } = require("playwright");
   await Promise.all([p0.waitForURL(base + "/"), p0.click("button[type=submit]")]);
   const state = await ctx0.storageState();
   const sizes = [[1920,1080],[1448,1086],[1440,900],[1366,768],[1280,800],[1180,820],[1024,768],[1024,1366],[820,1180],[768,1024],[430,932],[393,852],[390,844],[375,667]];
-  for (const path of ["/", "/inventory", "/inventory/products", "/inventory/products?new=1", "/inventory/movements", "/inventory/suppliers", "/inventory/import", "/inventory/report", "/calendar", "/calendar?view=week", "/calendar?view=day", "/calendar?view=agenda", "/calendar?new=1", "/calendar/content", "/modules/marketing", "/search?q=x", "/account/password"]) {
+  for (const path of ["/", "/inventory", "/inventory/products", "/inventory/products?new=1", "/inventory/movements", "/inventory/suppliers", "/inventory/import", "/inventory/report", "/calendar", "/calendar?view=week", "/calendar?view=day", "/calendar?view=agenda", "/calendar?new=1", "/calendar/content", "/calendar?date=2026-12-07&holiday=2026-12-07:0", "/modules/marketing", "/search?q=x", "/account/password"]) {
     for (const [w,h] of sizes) {
       const c = await b.newContext({ viewport: { width: w, height: h }, storageState: state, deviceScaleFactor: path === "/" ? (w < 768 ? 2 : 1) : 1 });
       const p = await c.newPage(); await p.goto(base + path, { waitUntil: "networkidle" });

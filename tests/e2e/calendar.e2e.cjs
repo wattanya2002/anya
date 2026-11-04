@@ -153,18 +153,58 @@ const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).for
     assert.equal(n, 1, `alert notifications found: ${n}`);
   });
 
+  await check("holidays: festival icon + colour in the month cell, detail shows the day colour", async () => {
+    await p.setViewportSize({ width: 1440, height: 900 });
+    await p.goto(`${BASE}/calendar?date=2026-11-24`);
+    const cell = p.locator(".cal-cell.hol", { has: p.locator(".cal-hol", { hasText: "วันลอยกระทง" }) });
+    assert.equal(await cell.count(), 1);
+    assert.equal(await cell.locator(".cal-hol svg").count(), 1, "festival icon");
+    const bg = await cell.evaluate((e) => getComputedStyle(e).getPropertyValue("--hb").trim());
+    assert.equal(bg, "#e6ebf8", "Loy Krathong tint");
+    await cell.locator(".cal-hol").click();
+    await p.waitForURL(/holiday=2026-11-24/);
+    const side = await p.locator(".cal-side").innerText();
+    assert.match(side, /วันลอยกระทง[\s\S]*ไม่ใช่วันหยุดราชการ[\s\S]*สีประจำวัน[\s\S]*น้ำเงินคืนเพ็ญ-ทอง/);
+  });
+
+  await check("holidays: day off is marked, compensation day listed, toggle hides them", async () => {
+    await p.goto(`${BASE}/calendar?date=2026-12-07`);
+    assert.equal(await p.locator(".cal-cell.off").count() >= 4, true, "5, 7, 10, 31 Dec are days off");
+    await p.goto(`${BASE}/calendar?view=agenda&date=2026-12-01`);
+    assert.match(await p.locator(".cal-main").innerText(), /ชดเชยวันพ่อแห่งชาติ[\s\S]*หยุดราชการและธนาคาร/);
+    await p.goto(`${BASE}/calendar?date=2026-12-07&hol=0`);
+    assert.equal(await p.locator(".cal-cell.hol").count(), 0);
+    assert.equal(await p.locator("input[name=hol][type=checkbox]").isChecked(), false);
+  });
+
+  await check("holidays: iPhone compact month shows the icon, day list shows the holiday", async () => {
+    const m = await b.newContext({ viewport: { width: 390, height: 844 }, storageState: await ctx.storageState() });
+    const mp = await m.newPage();
+    await mp.goto(`${BASE}/calendar?date=2026-12-07`);
+    assert.ok(await mp.locator(".cal-pick-hol").count() >= 4);
+    assert.match(await mp.locator(".cal-dayagenda").innerText(), /ชดเชยวันพ่อแห่งชาติ/);
+    assert.equal(await mp.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight), 0);
+    await m.close();
+  });
+
+  await check("holidays: years without checked data show a notice instead of guessing", async () => {
+    await p.goto(`${BASE}/calendar?date=2028-03-01`);
+    assert.equal(await p.locator(".cal-cell.hol").count(), 0);
+    assert.match(await p.locator(".cal-side").innerText(), /ยังไม่มีข้อมูลวันหยุดปี 2571/);
+  });
+
   await check("no client errors", async () => assert.deepEqual(errors, []));
 
   // cleanup the multi-day test item
   await p.goto(`${BASE}/calendar?view=agenda&q=${encodeURIComponent(`ทัวร์นาเมนต์ ${T}`)}`);
-  if (await p.locator(".cal-row").count()) {
-    await p.locator(".cal-row").first().click();
+  if (await p.locator(".cal-main .cal-row").count()) {
+    await p.locator(".cal-main .cal-row").first().click();
     await p.locator("button", { hasText: "ลบรายการ" }).click();
     await p.waitForURL((u) => !u.searchParams.has("item"));
   }
   await p.goto(`${BASE}/calendar?view=agenda&q=${encodeURIComponent(title)}`);
-  while (await p.locator(".cal-row").count()) {
-    await p.locator(".cal-row").first().click();
+  while (await p.locator(".cal-main .cal-row").count()) {
+    await p.locator(".cal-main .cal-row").first().click();
     await p.locator("button", { hasText: "ลบรายการ" }).click();
     await p.waitForURL((u) => !u.searchParams.has("item"));
     await p.goto(`${BASE}/calendar?view=agenda&q=${encodeURIComponent(title)}`);
