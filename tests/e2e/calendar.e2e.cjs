@@ -120,6 +120,16 @@ const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).for
     assert.equal(await p.inputValue("#c-kind"), "content");
   });
 
+  await check("filters apply on change (no extra click) and fit one row on PC", async () => {
+    await p.setViewportSize({ width: 1280, height: 800 });
+    await p.goto(`${BASE}/calendar?view=agenda`);
+    await Promise.all([p.waitForURL(/type=court_event/), p.selectOption("#cf-type", "court_event")]);
+    const rows = await p.locator(".cal-filters > *:not(.cal-apply):not(input)").evaluateAll((els) => new Set(els.filter((e) => e.getClientRects().length).map((e) => Math.round(e.getBoundingClientRect().top))).size);
+    assert.equal(rows, 1, "filters on one line at 1280px");
+    assert.ok(await p.locator(".cal-filters").evaluate((e) => e.scrollWidth <= e.clientWidth), "filters do not overflow into the side panel");
+    await p.setViewportSize({ width: 1440, height: 900 });
+  });
+
   await check("week and agenda views render; week navigation moves 7 days", async () => {
     await p.goto(`${BASE}/calendar?view=week&date=${today}`);
     assert.equal(await p.locator(".cal-wv-day").count(), 7);

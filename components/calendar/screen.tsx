@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, CalendarDays, ChevronLeft, ChevronRight, Clock, ExternalLink, Pencil, Plus, Trash2, Users, X } from "lucide-react";
+import { AlertTriangle, CalendarDays, CalendarHeart, UserRound, ChevronLeft, ChevronRight, Clock, ExternalLink, Pencil, Plus, Trash2, Users, X } from "lucide-react";
 import { can, type CurrentUser } from "@/lib/auth";
 import { bangkokToday } from "@/lib/dates";
 import { computeAlerts, getEditableEvent, listMembers, loadCalendarItems } from "@/lib/calendar";
@@ -14,6 +14,7 @@ import {
   HOLIDAY_YEARS, OFF_TH, THEMES, TYPE_TH, endOf, findHoliday, holidayKey, holidaysIn, holidaysOn, isDayOff, missingYears, type Holiday,
 } from "@/lib/holidays-th";
 import { HolidayIcon } from "./holiday-icon";
+import { FilterAutoSubmit } from "./filter-autosubmit";
 import { EventForm } from "./event-form";
 import { deleteCalendarEvent, setCalendarEventStatus } from "@/app/(app)/calendar/actions";
 
@@ -128,30 +129,31 @@ export async function CalendarScreen({ user, searchParams, base, preset }: {
           { id: "main", label: "ปฏิทิน" }, { id: sideTab, label: sideLabel }, { id: "filter", label: activeFilters ? `ตัวกรอง (${activeFilters})` : "ตัวกรอง" },
         ]} />
 
-        <form className="cal-filters" action={base} role="search" data-tab="filter">
+        <form className="cal-filters" id="cal-filters" action={base} role="search" data-tab="filter">
+          <FilterAutoSubmit formId="cal-filters" />
           {st.view !== "month" && <input type="hidden" name="view" value={st.view} />}
           {st.date !== today && <input type="hidden" name="date" value={st.date} />}
           {!preset && (
-            <div className="field"><label htmlFor="cf-type">ประเภท</label>
-              <select id="cf-type" name="type" defaultValue={st.kinds.length === 1 ? st.kinds[0] : ""}>
+            <div className="field"><label htmlFor="cf-type" className="sr-only">ประเภท</label>
+              <select id="cf-type" name="type" title="ประเภท" className="w-type" defaultValue={st.kinds.length === 1 ? st.kinds[0] : ""}>
                 <option value="">ทุกประเภท</option>
                 {ALL_KINDS.filter((k) => k !== "followup" || can(user, "crm.followup")).map((k) => <option key={k} value={k}>{KIND_TH[k]}</option>)}
               </select></div>
           )}
-          <div className="field"><label htmlFor="cf-owner">ผู้รับผิดชอบ</label>
-            <select id="cf-owner" name="owner" defaultValue={st.owner}><option value="">ทุกคน</option>{members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
-          <div className="field"><label htmlFor="cf-status">สถานะ</label>
-            <select id="cf-status" name="status" defaultValue={st.status}><option value="">ทุกสถานะ</option>{STATUSES.map((s) => <option key={s} value={s}>{STATUS_TH[s]}</option>)}</select></div>
+          <div className="field"><label htmlFor="cf-owner" className="sr-only">ผู้รับผิดชอบ</label>
+            <select id="cf-owner" name="owner" title="ผู้รับผิดชอบ" className="w-owner" defaultValue={st.owner}><option value="">ทุกคน</option>{members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+          <div className="field"><label htmlFor="cf-status" className="sr-only">สถานะ</label>
+            <select id="cf-status" name="status" title="สถานะ" className="w-status" defaultValue={st.status}><option value="">ทุกสถานะ</option>{STATUSES.map((s) => <option key={s} value={s}>{STATUS_TH[s]}</option>)}</select></div>
           {st.view === "agenda" && (
-            <div className="field"><label htmlFor="cf-days">ช่วงเวลา</label>
+            <div className="field"><label htmlFor="cf-days" className="sr-only">ช่วงเวลา</label>
               <select id="cf-days" name="days" defaultValue={String(st.days)}><option value="7">7 วัน</option><option value="30">30 วัน</option><option value="90">90 วัน</option></select></div>
           )}
-          <div className="field grow"><label htmlFor="cf-q">ค้นหา</label>
-            <input id="cf-q" name="q" type="search" placeholder="ชื่อรายการ / รายละเอียด" defaultValue={st.q} /></div>
-          <label className="check"><input type="checkbox" name="mine" value="1" defaultChecked={st.mine} /> เฉพาะงานของฉัน</label>
-          <label className="check"><input type="checkbox" name="hol" value="1" defaultChecked={st.hol} /><input type="hidden" name="hol" value="0" /> แสดงวันหยุด / เทศกาล</label>
-          <button className="btn-pill" type="submit">กรอง</button>
-          {activeFilters > 0 && <Link className="link-btn small" href={`${base}${st.view !== "month" ? `?view=${st.view}` : ""}`}>ล้างตัวกรอง</Link>}
+          <div className="field grow"><label htmlFor="cf-q" className="sr-only">ค้นหา</label>
+            <input id="cf-q" name="q" type="search" placeholder="ค้นหาชื่อรายการหรือรายละเอียด" defaultValue={st.q} /></div>
+          <label className="check" title="เฉพาะงานของฉัน"><input type="checkbox" name="mine" value="1" defaultChecked={st.mine} /><UserRound aria-hidden="true" className="chk-ic" /><span className="chk-lbl">งานของฉัน</span></label>
+          <label className="check" title="แสดงวันหยุดและเทศกาล"><input type="checkbox" name="hol" value="1" defaultChecked={st.hol} /><input type="hidden" name="hol" value="0" /><CalendarHeart aria-hidden="true" className="chk-ic" /><span className="chk-lbl">วันหยุด / เทศกาล</span></label>
+          <button className="btn-pill cal-apply" type="submit">กรอง</button>
+          {activeFilters > 0 && <Link className="cal-clear" href={`${base}${st.view !== "month" ? `?view=${st.view}` : ""}`} title="ล้างตัวกรอง"><X aria-hidden="true" /><span className="chk-lbl">ล้างตัวกรอง</span></Link>}
         </form>
 
         <article className="card panel cal-main" data-tab="main" aria-label={`ปฏิทินมุมมอง${VIEW_TH[st.view]}`}>
@@ -202,11 +204,14 @@ function Chip({ item, href, showTime = true, className = "" }: { item: CalItem; 
 function MonthView({ items, hols, st, today, href }: { items: CalItem[]; hols: Holiday[]; st: State; today: string; href: Href }) {
   const weeks = monthWeeks(st.date);
   const month = st.date.slice(0, 7);
-  const dayItems = itemsOn(items, st.date);
-  const dayHols = holidaysOn(hols, st.date);
+  const last = weeks[weeks.length - 1][6];
+  const sheetDays: string[] = [];
+  for (let d = st.date; d <= last && sheetDays.length < 21; d = addDays(d, 1)) sheetDays.push(d);
+  const sheet = sheetDays.map((d) => ({ d, on: itemsOn(items, d), hs: holidaysOn(hols, d) }))
+    .filter((g, k) => k === 0 || g.on.length || g.hs.length);
   return (
     <div className="cal-month" style={{ ["--weeks" as string]: weeks.length }}>
-      <div className="cal-wd" aria-hidden="true">{WEEKDAY_TH.map((d) => <span key={d}>{d}</span>)}</div>
+      <div className="cal-wd" aria-hidden="true">{WEEKDAY_TH.map((d, i) => <span key={d} className={i >= 5 ? "we" : undefined}>{d}</span>)}</div>
       <div className="cal-weeks">
         {weeks.map((week) => {
           const segs = layoutWeek(items, week[0]);
@@ -254,10 +259,15 @@ function MonthView({ items, hols, st, today, href }: { items: CalItem[]; hols: H
           );
         })}
       </div>
-      <section className="cal-dayagenda" aria-label={`รายการวันที่ ${thaiDate(st.date)}`}>
-        <h2>{thaiDate(st.date, { weekday: true, year: true })} <small>({dayItems.length} รายการ)</small></h2>
-        <HolidayRows list={dayHols} href={href} />
-        <AgendaRows items={dayItems} href={href} empty={dayHols.length ? undefined : "ไม่มีรายการในวันนี้"} />
+      <section className="cal-dayagenda cal-sheet" aria-label={`รายการตั้งแต่วันที่ ${thaiDate(st.date)}`}>
+        <span className="cal-grab" aria-hidden="true" />
+        {sheet.map((g, k) => (
+          <div key={g.d} className="cal-sheet-day">
+            <h2 className={g.d === today ? "today" : undefined}>{thaiDate(g.d, { weekday: true })}{g.d === today ? <small> · วันนี้</small> : null}</h2>
+            <HolidayRows list={g.hs} href={href} />
+            <AgendaRows items={g.on} href={href} empty={k === 0 && !g.hs.length ? "ไม่มีรายการในวันนี้" : undefined} />
+          </div>
+        ))}
       </section>
     </div>
   );
@@ -324,8 +334,44 @@ function DayView({ items, hols, st, href }: { items: CalItem[]; hols: Holiday[];
   const last = Math.max(22, ...cols.map((c) => Math.ceil((c.top + c.height) / 60)));
   const hours = Array.from({ length: last - first + 1 }, (_, i) => first + i);
   const PX = 0.9; // px per minute
+  const ws = weekStart(st.date);
+  const strip = Array.from({ length: 7 }, (_, k) => addDays(ws, k));
+  const dayHols = holidaysOn(hols, st.date);
+  const timedSorted = [...timedSameDay].sort((a, b) => (a.startTime ?? "").localeCompare(b.startTime ?? ""));
   return (
     <div className="cal-dayview">
+      <nav className="cal-strip" aria-label="เลือกวันในสัปดาห์">
+        {strip.map((d, k) => {
+          const hs = holidaysOn(hols, d);
+          return (
+            <Link key={d} href={href({ view: "day", date: d })} aria-current={d === st.date ? "date" : undefined}
+              className={`${d === st.date ? "sel" : ""}${d === bangkokToday() ? " today" : ""}${hs.length ? " hol" : ""}`} style={hs[0] ? holStyle(hs[0]) : undefined}>
+              <span>{WEEKDAY_TH[k]}</span><b>{Number(d.slice(8))}</b>
+              <i className={itemsOn(items, d).length ? "has" : undefined} aria-hidden="true" />
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="cal-daylist">
+        <HolidayRows list={dayHols} href={href} />
+        <AgendaRows items={allDay} href={href} />
+        {timedSorted.length === 0 && !allDay.length && !dayHols.length && <p className="muted small cal-empty">ไม่มีรายการในวันนี้</p>}
+        {timedSorted.length > 0 && (
+          <ol className="cal-tl">
+            {timedSorted.map((i) => (
+              <li key={i.key}>
+                <span className="cal-tl-time">{i.startTime}</span>
+                <Link className={`cal-tl-card tone-${KIND_TONE[i.kind]} st-${i.status}`} href={href({ item: i.sourceKey, date: i.start })}>
+                  {i.endTime && <span className="cal-tl-range">{timeLabel(i)}</span>}
+                  <span className="cal-row-title">{i.title}</span>
+                  <span className="cal-row-sub">{KIND_TH[i.kind]}{i.ownerName ? ` · ${i.ownerName}` : ""}</span>
+                  {(i.status === "overdue" || i.status === "pending_approval" || i.status === "done") && <span className={`cal-status st-${i.status}`}>{STATUS_TH[i.status]}</span>}
+                </Link>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
       <div className="cal-allday">
         <span className="cal-allday-label">ทั้งวัน / หลายวัน</span>
         <div className="cal-allday-items">
@@ -372,6 +418,12 @@ function AgendaView({ items, hols, range, today, href }: { items: CalItem[]; hol
   );
 }
 
+function TimeCell({ i }: { i: CalItem }) {
+  if (i.start !== i.end) return <span className="cal-row-time"><b>{thaiDate(i.start)}</b><small>– {thaiDate(i.end)}</small></span>;
+  if (!i.startTime) return <span className="cal-row-time"><b>ทั้งวัน</b></span>;
+  return <span className="cal-row-time"><b>{i.startTime}</b>{i.endTime && <small>{i.endTime}</small>}</span>;
+}
+
 function AgendaRows({ items, href, empty }: { items: CalItem[]; href: Href; empty?: string }) {
   if (!items.length) return empty ? <p className="muted small cal-empty">{empty}</p> : null;
   return (
@@ -380,7 +432,7 @@ function AgendaRows({ items, href, empty }: { items: CalItem[]; href: Href; empt
         <li key={i.key}>
           <Link className={`cal-row st-${i.status}`} href={href({ item: i.sourceKey, date: i.start })}>
             <span className={`cal-dot tone-${KIND_TONE[i.kind]}`} aria-hidden="true" />
-            <span className="cal-row-time">{i.start !== i.end ? `${thaiDate(i.start)}–${thaiDate(i.end)}` : timeLabel(i)}</span>
+            <TimeCell i={i} />
             <span className="cal-row-main"><span className="cal-row-title">{i.title}</span>
               <span className="cal-row-sub">{KIND_TH[i.kind]}{i.ownerName ? ` · ${i.ownerName}` : ""}</span></span>
             <span className={`cal-status st-${i.status}`}>{STATUS_TH[i.status]}</span>
@@ -457,10 +509,10 @@ function Summary({ workload: w, alerts, conflicts, href, upcoming, noHolidayData
       </div>
       <div className="card-body">
         <div className="cal-wl">
-          <div><span>งานทั้งหมด</span><b>{w.total}</b></div>
-          <div><span>เสร็จแล้ว</span><b className="ok">{w.done}</b></div>
-          <div><span>เกินกำหนด</span><b className={w.overdue ? "bad" : ""}>{w.overdue}</b></div>
-          <div><span>รออนุมัติ</span><b>{w.pending}</b></div>
+          <div className="wl-pink"><b>{w.total}</b><span>งานทั้งหมด</span></div>
+          <div className="wl-green"><b>{w.done}</b><span>เสร็จแล้ว</span></div>
+          <div className="wl-amber"><b>{w.overdue}</b><span>เกินกำหนด</span></div>
+          <div className="wl-purple"><b>{w.pending}</b><span>รออนุมัติ</span></div>
         </div>
         <div className="cal-wl-bars" role="img" aria-label={`จำนวนงานรายวัน: ${w.perDay.map((d) => `${thaiDate(d.date)} ${d.count}`).join(", ")}`}>
           {w.perDay.map((d, i) => (
@@ -529,7 +581,7 @@ function HolidayRows({ list, href, withDate = false }: { list: Holiday[]; href: 
         <li key={holidayKey(h)}>
           <Link className="cal-row" style={holStyle(h)} href={href({ holiday: holidayKey(h), date: h.date })}>
             <span className="cal-hol-badge" aria-hidden="true"><HolidayIcon theme={h.theme} /></span>
-            <span className="cal-row-time">{withDate || h.end ? (h.end ? `${thaiDate(h.date)}–${thaiDate(h.end)}` : thaiDate(h.date, { weekday: !withDate })) : "ทั้งวัน"}</span>
+            <span className="cal-row-time">{h.end ? <><b>{thaiDate(h.date)}</b><small>– {thaiDate(h.end)}</small></> : <b>{withDate ? thaiDate(h.date) : "ทั้งวัน"}</b>}</span>
             <span className="cal-row-main"><span className="cal-row-title">{h.name}</span>
               <span className="cal-row-sub">{h.off ? OFF_TH[h.off] : TYPE_TH[h.type]}{h.pending ? " · รอมติ ครม." : ""}</span></span>
             <span className={`cal-status hol-type t-${h.type}`}>{h.off && !h.pending ? "วันหยุด" : TYPE_TH[h.type]}</span>
