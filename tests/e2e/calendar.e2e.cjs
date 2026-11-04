@@ -64,12 +64,13 @@ const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).for
     assert.equal(await p.inputValue("#c-title"), "ผิดเวลา", "typed values are kept");
   });
 
-  await check("day view shows both items side by side and the conflict in the summary", async () => {
-    await p.goto(`${BASE}/calendar?view=day&date=${today}`);
-    const blocks = p.locator(".cal-block", { hasText: title });
-    assert.equal(await blocks.count(), 2);
-    const [a, c] = [await blocks.nth(0).boundingBox(), await blocks.nth(1).boundingBox()];
-    assert.ok(Math.abs(a.x - c.x) > 20, "overlapping items get separate columns");
+  await check("day view lists both overlapping items in time order; the conflict shows in the weekly summary", async () => {
+    await p.goto(`${BASE}/calendar?date=${today}`);
+    const cards = p.locator(".pd-card", { hasText: title });
+    assert.equal(await cards.count(), 2);
+    const [a, c] = [await cards.nth(0).boundingBox(), await cards.nth(1).boundingBox()];
+    assert.ok(c.y > a.y, "timed items are stacked chronologically");
+    await p.goto(`${BASE}/calendar?date=${today}&sheet=summary`);
     assert.match(await p.locator(".cal-side").innerText(), new RegExp(`${title}[\\s\\S]*↔`));
   });
 
@@ -92,23 +93,25 @@ const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).for
     assert.match(await p.locator(".cal-main").innerText(), /ไม่มีรายการในช่วงนี้/);
   });
 
-  await check("multi-day item renders as one continuous bar", async () => {
-    await p.goto(`${BASE}/calendar?new=1&date=${today}`);
+  await check("multi-day item: one record, start-day chip, soft continuation on the following days", async () => {
+    // a quiet date (no holidays or seeded items) so the start-day chip is not pushed into "+N"
+    const d0 = "2027-03-08", d2 = "2027-03-10";
+    await p.goto(`${BASE}/calendar?new=1&date=${d0}`);
     await p.fill("#c-title", `ทัวร์นาเมนต์ ${T}`); await p.selectOption("#c-kind", "court_event");
-    const end = new Date(`${today}T00:00:00Z`); end.setUTCDate(end.getUTCDate() + 2);
-    await p.fill("#c-start", today); await p.fill("#c-end", end.toISOString().slice(0, 10));
+    await p.fill("#c-start", d0); await p.fill("#c-end", d2);
     await p.check("input[name=allDay]");
     await p.click(".cal-form button[type=submit]");
     await p.locator(".form-msg.ok").waitFor({ timeout: 10000 });
-    await p.goto(`${BASE}/calendar?view=month&date=${today}`);
-    const bars = p.locator(".cal-bar", { hasText: `ทัวร์นาเมนต์ ${T}` });
-    const n = await bars.count();
-    const spans = await bars.evaluateAll((els) => els.map((e) => Number((e.style.gridColumn.match(/span (\d+)/) || [0, 1])[1])));
-    assert.equal(spans.reduce((a, c) => a + c, 0), 3, `3 days across ${n} week row(s)`);
+    await p.goto(`${BASE}/calendar?view=month&date=${d0}`);
+    assert.equal(await p.locator(".pm-chip", { hasText: `ทัวร์นาเมนต์ ${T}` }).count(), 1, "one chip, on the start day");
+    assert.match(await p.locator(`.pm-cell[href*="date=${d0}"]`).getAttribute("aria-label"), new RegExp(`ทัวร์นาเมนต์ ${T} .+ ถึง `), "accessible range label");
+    for (const d of ["2027-03-09", "2027-03-10"]) assert.ok(await p.locator(`.pm-cell[href*="date=${d}"] .pm-dots i`).count() >= 1, `continuation dot on ${d}`);
+    await p.goto(`${BASE}/calendar?date=2027-03-09`);
+    assert.match(await p.locator(".pd").innerText(), new RegExp(`ทัวร์นาเมนต์ ${T}[\\s\\S]*กำลังใช้งาน`), "Day shows the ongoing occurrence");
   });
 
   await check("filters: type + search, and Content Calendar is the content-only sub-view", async () => {
-    await p.goto(`${BASE}/calendar?view=agenda&type=court_event`);
+    await p.goto(`${BASE}/calendar?view=agenda&days=90&date=2027-03-01&type=court_event`);
     const txt = await p.locator(".cal-main").innerText();
     assert.match(txt, new RegExp(`ทัวร์นาเมนต์ ${T}`));
     assert.doesNotMatch(txt, /งาน\/Deadline/);
@@ -194,7 +197,7 @@ const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).for
       assert.ok(await mp.locator(".cal-side").isVisible());
     }
     await mp.goto(`${BASE}/calendar?view=month&date=${today}`);
-    const spill = await mp.locator(".pm-cell").evaluateAll((cells) => cells.filter((c) => [...c.querySelectorAll(".pm-chip")].some((ch) => { const a = c.getBoundingClientRect(), r = ch.getBoundingClientRect(); return r.left < a.left - 0.5 || r.right > a.right + 0.5; })).length);
+    const spill = await mp.locator(".pm-cell").evaluateAll((cells) => cells.filter((c) => [...c.querySelectorAll(".pm-chip")].filter((ch) => ch.getClientRects().length).some((ch) => { const a = c.getBoundingClientRect(), r = ch.getBoundingClientRect(); return r.left < a.left - 0.5 || r.right > a.right + 0.5; })).length);
     assert.equal(spill, 0, "no chip spills into the next day");
     await m.close();
   });
@@ -209,24 +212,24 @@ const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).for
   await check("holidays: festival icon + colour in the month cell, detail shows the day colour", async () => {
     await p.setViewportSize({ width: 1440, height: 900 });
     await p.goto(`${BASE}/calendar?view=month&date=2026-11-24`);
-    const cell = p.locator(".cal-cell.hol", { has: p.locator(".cal-hol", { hasText: "วันลอยกระทง" }) });
-    assert.equal(await cell.count(), 1);
-    assert.equal(await cell.locator(".cal-hol svg").count(), 1, "festival icon");
-    const bg = await cell.evaluate((e) => getComputedStyle(e).getPropertyValue("--hb").trim());
+    const chip = p.locator(".pm-chip.hol", { hasText: "ลอยกระทง" });
+    assert.equal(await chip.count(), 1);
+    assert.equal(await chip.locator("svg").count(), 1, "festival icon");
+    const bg = await chip.evaluate((e) => getComputedStyle(e).getPropertyValue("--hb").trim());
     assert.equal(bg, "#e6ebf8", "Loy Krathong tint");
-    await cell.locator(".cal-hol").click();
-    await p.waitForURL(/holiday=2026-11-24/);
+    await p.goto(`${BASE}/calendar?date=2026-11-24`);
+    await Promise.all([p.waitForURL(/holiday=2026-11-24/), p.locator(".pd-card.hol .pd-link").first().click()]);
     const side = await p.locator(".cal-side").innerText();
     assert.match(side, /วันลอยกระทง[\s\S]*ไม่ใช่วันหยุดราชการ[\s\S]*สีประจำวัน[\s\S]*น้ำเงินคืนเพ็ญ-ทอง/);
   });
 
   await check("holidays: day off is marked, compensation day listed, toggle hides them", async () => {
     await p.goto(`${BASE}/calendar?view=month&date=2026-12-07`);
-    assert.equal(await p.locator(".cal-cell.off").count() >= 4, true, "5, 7, 10, 31 Dec are days off");
+    assert.equal(await p.locator(".pm-cell.off").count() >= 4, true, "5, 7, 10, 31 Dec are days off");
     await p.goto(`${BASE}/calendar?view=agenda&date=2026-12-01`);
     assert.match(await p.locator(".cal-main").innerText(), /ชดเชยวันพ่อแห่งชาติ[\s\S]*หยุดราชการและธนาคาร/);
     await p.goto(`${BASE}/calendar?view=month&date=2026-12-07&hol=0`);
-    assert.equal(await p.locator(".cal-cell.hol").count(), 0);
+    assert.equal(await p.locator(".pm-chip.hol").count(), 0);
     assert.equal(await p.locator("input[name=hol][type=checkbox]").isChecked(), false);
   });
 
@@ -242,15 +245,15 @@ const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).for
   });
 
   await check("holidays: years without checked data show a notice instead of guessing", async () => {
-    await p.goto(`${BASE}/calendar?view=month&date=2028-03-01`);
-    assert.equal(await p.locator(".cal-cell.hol").count(), 0);
+    await p.goto(`${BASE}/calendar?view=month&date=2028-03-01&sheet=summary`);
+    assert.equal(await p.locator(".pm-chip.hol").count(), 0);
     assert.match(await p.locator(".cal-side").innerText(), /ยังไม่มีข้อมูลวันหยุดปี 2571/);
   });
 
   await check("no client errors", async () => assert.deepEqual(errors, []));
 
   // cleanup the multi-day test item
-  await p.goto(`${BASE}/calendar?view=agenda&q=${encodeURIComponent(`ทัวร์นาเมนต์ ${T}`)}`);
+  await p.goto(`${BASE}/calendar?view=agenda&date=2027-03-01&q=${encodeURIComponent(`ทัวร์นาเมนต์ ${T}`)}`);
   if (await p.locator(".cal-main .cal-row").count()) {
     await p.locator(".cal-main .cal-row").first().click();
     await p.locator("button", { hasText: "ลบรายการ" }).click();

@@ -1362,11 +1362,16 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
       #f9fbff;
   }
   .content:has(.cal) .topbar .topbar-divider { display: block; height: 30px; align-self: center; margin: 0 2px; }
-
+}
+/* Day & Month share one design at every width (iPad / PC keep the rail + header shell, RCM v1.1 §7.3) */
+@media all {
   .cal { --cal-ink: #161925; --cal-sub: #657087; --cal-muted: #adb4c2; --cal-pink: #f46c9a; --cal-pink-tint: #fce7f0;
     --cal-shadow: 0 14px 40px rgba(99, 126, 172, 0.09); --cal-surface: rgba(255, 255, 255, 0.84); margin-top: 6px; }
-  .cal > .cal-head, .cal-main > .cal-month, .cal-main > .cal-dayview, .cal-body > .cal-filters, .cal-body > .cal-side { display: none; }
-  .cal-mhead { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 4px 4px 0; flex: none; }
+  .cal:is([data-view="day"], [data-view="month"]) > .cal-head,
+  .cal:is([data-view="day"], [data-view="month"]) .cal-main > :is(.cal-month, .cal-dayview),
+  .cal:is([data-view="day"], [data-view="month"]) .cal-body > :is(.cal-filters, .cal-side) { display: none; }
+  .cal:is([data-view="day"], [data-view="month"]) .cal-mhead { display: flex; }
+  .cal-mhead { align-items: flex-end; justify-content: space-between; gap: 12px; padding: 4px 4px 0; flex: none; }
   .cal-mcap { margin: 0; font-size: 14px; color: var(--cal-sub); }
   .cal-mtitle { margin: 2px 0 0; font-size: 28px; line-height: 1.2; font-weight: 700; color: var(--cal-ink); letter-spacing: -.01em; }
 
@@ -1395,8 +1400,8 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
   .vp-menu b { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--cal-pink); color: #fff; font-size: 11.5px; display: grid; place-items: center; }
 
   /* the calendar content area scrolls inside; the page does not */
-  .cal-body { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; margin-top: 14px; gap: 0; }
-  .cal-main { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; padding: 0; background: transparent; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; overflow: visible; }
+  .cal:is([data-view="day"], [data-view="month"]) .cal-body { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; margin-top: 14px; gap: 0; }
+  .cal:is([data-view="day"], [data-view="month"]) .cal-main { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; padding: 0; background: transparent; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; overflow: visible; }
   .cal-main > .pd, .cal-main > .pm { display: flex; }
 
   /* -------- Day */
@@ -1490,6 +1495,8 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
   .pm-more { margin-top: 2px; font-size: 12px; color: var(--cal-sub); }
   .pm-dots { display: flex; gap: 3px; margin-top: 4px; }
 
+}
+@media (max-width: 767px) {
   /* -------- bottom sheets: detail / form / holiday / summary / filters */
   .cal-backdrop { display: block; position: fixed; inset: 0; z-index: 55; background: rgba(22, 25, 37, 0.16); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
   .cal[data-sheet="side"] .cal-body > .cal-side, .cal[data-sheet="filter"] .cal-body > .cal-filters {
@@ -1514,7 +1521,7 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
   .bottom-nav svg { width: 25px; height: 25px; }
   .bottom-nav .menu-panel { bottom: calc(var(--wc-bottom-nav-h) + 18px + env(safe-area-inset-bottom)); }
 }
-@media (max-width: 767px) {
+@media all {
   /* header fits one line next to the picker */
   .cal-mhead-text { min-width: 0; flex: 1 1 auto; }
   .cal-mtitle { font-size: 25px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1545,12 +1552,69 @@ input, select, textarea { font: inherit; font-size: 16px; max-width: 100%; min-w
   .pm-chip-ic { display: inline-block; vertical-align: -1px; margin: 0 2px 0 0; }
   .pm-chip-t { display: -webkit-box; }
   .pm-cell.out .pm-chip { opacity: .55; }
-  .pm-ribbons { position: absolute; left: 0; right: 0; bottom: 3px; display: grid; gap: 2px; }
-  .pm-ribbons i { height: 3px; background: var(--k-dot); opacity: .42; }
-  .pm-cell.sel .pm-ribbons i { opacity: .6; }
 }
 @media (max-width: 767px) {
   /* floating nav = 70px pill + 10px gap: content and FAB reserve that space */
   :root { --wc-bottom-nav-h: 80px; }
   .pd-fab { bottom: calc(var(--wc-bottom-nav-h) + 18px + env(safe-area-inset-bottom)); }
+}
+
+/* ---------------- Calendar RCM v1.1 — iPad / PC (same design inside the rail + header shell) */
+.pm-more.m2 { display: none; }
+@media (max-width: 767px) { .pm-chip.c2 { display: none; } }
+@media (min-width: 768px) {
+  .cal:is([data-view="day"], [data-view="month"]) { --cal-ink: #161925; }
+  .cal-mhead { padding: 2px 6px 0; }
+  .cal-mcap { font-size: 14.5px; }
+  .cal-mtitle { font-size: 30px; }
+  .vp-btn { height: 50px; }
+  .vp-menu { min-width: 220px; }
+  /* Day: week strip + timeline, readable line length */
+  .pd { width: 100%; max-width: 920px; }
+  .cal[data-view="day"] .cal-mhead { max-width: 920px; }
+  .pd-strip { padding: 16px 12px 14px; }
+  .pd-num { min-width: 44px; height: 38px; font-size: 18px; }
+  .pd-scroll { padding-bottom: 110px; }
+  .pd-tl { padding-left: 34px; }
+  .pd-link { grid-template-columns: 56px minmax(0, 1fr) auto; padding: 18px 20px 18px 16px; }
+  .pd-ic { width: 56px; height: 56px; }
+  .pd-title { font-size: 17px; }
+  .pd-desc { font-size: 14px; }
+  .pd-fab { right: 36px; bottom: 36px; width: 64px; height: 64px; }
+  /* Month: one card, equal rows that fill the card, up to three chips per day */
+  .pm { padding: 18px 18px 18px; }
+  .pm-nav { padding: 0 6px 12px; }
+  .pm-nav h2 { font-size: 22px; }
+  .pm-wd { font-size: 14px; }
+  .pm-grid { flex: 1 1 auto; min-height: 0; grid-auto-rows: unset; grid-template-rows: repeat(var(--rows), minmax(88px, 1fr)); row-gap: 4px; column-gap: 6px; }
+  .pm-cell { align-items: stretch; padding: 6px 7px; gap: 3px; }
+  .pm-num { align-self: flex-start; font-size: 16px; }
+  .pm-chip { margin-top: 0; padding: 3px 7px; border-radius: 9px; font-size: 12.5px; }
+  .pm-chip-t { -webkit-line-clamp: 1; }
+  .pm-more.m1 { display: none; }
+  .pm-more.m2 { display: block; padding-left: 4px; font-size: 12px; color: var(--cal-sub); }
+  .pm-dots { padding-left: 4px; }
+  /* sheets become a right-hand panel; the backdrop dims the calendar */
+  .cal-backdrop { display: block; position: fixed; inset: 0; z-index: 55; background: rgba(22, 25, 37, 0.12); }
+  .cal[data-sheet="side"] .cal-body > .cal-side, .cal[data-sheet="filter"] .cal-body > .cal-filters {
+    display: flex; flex-direction: column; position: fixed; z-index: 60; top: 16px; right: 16px; bottom: 16px; width: min(440px, calc(100vw - 32px));
+    overflow-y: auto; overscroll-behavior: contain; border-radius: 28px; padding: 10px 6px 18px; min-height: 0;
+    background: rgba(255, 255, 255, 0.97); border: 1px solid rgba(255, 255, 255, 0.95); box-shadow: 0 18px 50px rgba(99, 126, 172, 0.22);
+  }
+  .cal[data-sheet="filter"] .cal-body > .cal-filters { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 12px; padding: 18px 20px; flex-wrap: wrap; }
+  .cal[data-sheet="filter"] .cal-filters select, .cal[data-sheet="filter"] .cal-filters input[type="search"] { width: 100%; max-width: none; height: 44px; font-size: 16px; }
+  .cal[data-sheet="filter"] .cal-filters .check { width: auto; justify-content: flex-start; padding: 0 14px; }
+  .cal[data-sheet="filter"] .cal-filters .check .chk-lbl { position: static; width: auto; height: auto; clip: auto; }
+  .cal[data-sheet="filter"] .cal-filters .check input[type="checkbox"] { position: static; opacity: 1; width: 16px; height: 16px; }
+  .cal[data-sheet="filter"] .cal-filters .check .chk-ic { display: none; }
+  .cal[data-sheet="filter"] .cal-filters .cal-sheet-head { display: flex; align-items: center; justify-content: space-between; }
+  .cal-sheet-head h2 { margin: 0; font-size: 18px; }
+  .cal-side .cal-grab { display: none; }
+  .cal-sheet-x { display: grid; position: absolute; right: 16px; top: 16px; z-index: 2; }
+  .cal[data-sheet] .cal-side > .panel-head, .cal[data-sheet] .cal-side > .card-body { padding-left: 16px; padding-right: 16px; }
+  /* the shell's backdrop-filter would become the containing block of the fixed panel; drop it while a sheet is open */
+  .frame:has(.cal[data-sheet]) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media (min-width: 768px) and (max-width: 1279px) {
+  .pm-chip-t { -webkit-line-clamp: 2; }
 }

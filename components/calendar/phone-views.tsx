@@ -162,8 +162,9 @@ export function PhoneMonth({ items, hols, date, today, href }: { items: CalItem[
             ...starts.map((i) => ({ key: i.key, label: i.shortTitle || i.title, tone: KIND_TONE[i.kind], kind: i.kind })),
             ...hs.map((h) => ({ key: holidayKey(h), label: holShort(h), hol: h })),
           ];
-          const shown = chips.slice(0, 1);
-          const more = chips.length - shown.length;
+          // iPhone shows one chip, iPad / PC two; each "+N" counts what that layout actually hides.
+          const shown = chips.slice(0, 2);
+          const more1 = chips.length - 1, more2 = chips.length - 2;
           // Short ranges (≤ 7 days) continue as a soft dot on each following day (MON-08); long campaigns
           // keep only their start chip so the month does not fill with markers. Every day keeps the full aria label.
           const dots = [...new Set(ongoing.filter((i) => diffDays(i.start, i.end) <= 6).map((i) => KIND_TONE[i.kind]))].slice(0, 3);
@@ -173,14 +174,15 @@ export function PhoneMonth({ items, hols, date, today, href }: { items: CalItem[
               className={`pm-cell${d.slice(0, 7) !== month ? " out" : ""}${d === date ? " sel" : ""}${d === today ? " today" : ""}${isDayOff(hs) ? " off" : ""}`}
               style={hs[0] ? holVars(hs[0]) : undefined}>
               <b className="pm-num">{Number(d.slice(8))}</b>
-              {shown.map((c) => (
-                <span key={c.key} className={`pm-chip ${c.hol ? "hol" : `k-${c.tone}`}`} style={c.hol ? holVars(c.hol) : undefined}>
+              {shown.map((c, n) => (
+                <span key={c.key} className={`pm-chip c${n + 1} ${c.hol ? "hol" : `k-${c.tone}`}`} style={c.hol ? holVars(c.hol) : undefined}>
                   <span className="pm-chip-t">
                     {c.hol ? <HolidayIcon theme={c.hol.theme} className="pm-chip-ic" /> : <KindIcon kind={c.kind!} className="pm-chip-ic" />}{c.label}
                   </span>
                 </span>
               ))}
-              {more > 0 && <span className="pm-more">+{more}</span>}
+              {more1 > 0 && <span className="pm-more m1">+{more1}</span>}
+              {more2 > 0 && <span className="pm-more m2">+{more2}</span>}
               {dots.length > 0 && <span className="pm-dots" aria-hidden="true">{dots.map((t) => <i key={t} className={`k-${t}`} />)}</span>}
             </Link>
           );
