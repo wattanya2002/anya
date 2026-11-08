@@ -29,7 +29,7 @@ export function Rail() {
 
 export function BottomNav() {
   const pathname = usePathname();
-  const moreKeys = (["dashboard", "content", "promotion", "customers", "courts", "reports", "settings"] as const);
+  const moreKeys = (["mk", "dashboard", "content", "promotion", "customers", "courts", "reports", "settings"] as const);
   const moreActive = moreKeys.some((k) => isActive(pathname, NAV[k].href));
   return (
     <nav className="bottom-nav" aria-label="เมนูหลัก">
