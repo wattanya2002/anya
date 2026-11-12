@@ -177,6 +177,10 @@ export function registrationMessage(o: { name: string; url: string; expiresAt: D
 export function infoRequestMessage(o: { name: string; ref: string; reason: string }): string {
   return [`สวัสดีค่ะ คุณ${o.name}`, `ทีมงาน Wonder Courts ขอข้อมูลเพิ่มเติมสำหรับใบสมัคร ${o.ref}`, o.reason, "ตอบกลับทาง LINE @wondercourts ได้เลยค่ะ"].join("\n");
 }
+/** Message Marketing sends the CEO with the card link (the system does not send it). */
+export function ceoCardMessage(o: { ref: string; name: string; pitch: string; url: string }): string {
+  return ["มีการ์ด KOL รอ CEO พิจารณา", `${o.ref} · ${o.name}`, o.pitch.trim() || null, `เปิดการ์ด: ${o.url}`].filter(Boolean).join("\n");
+}
 export function lineShareUrl(text: string): string {
   return `https://line.me/R/share?text=${encodeURIComponent(text)}`;
 }

@@ -1,13 +1,14 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Ban, BadgeCheck, ClipboardCheck, ExternalLink, History, Link2, ListChecks, Lock, MessageSquareText, NotebookPen, Send, ShieldAlert, Star, UserRound } from "lucide-react";
+import { ArrowLeft, Ban, BadgeCheck, ClipboardCheck, ExternalLink, History, Link2, ListChecks, Lock, MessageCircle, MessageSquareText, NotebookPen, Send, ShieldAlert, Star, UserRound } from "lucide-react";
 import { requireUser, can } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getApplicant, termsById } from "@/lib/kol";
-import { applicantRef, canTransition, DECISION_LABEL, STATUS_LABEL, infoRequestMessage, meetsFollowerRule, type ApplicantStatus } from "@/lib/kol-core";
+import { applicantRef, canTransition, ceoCardMessage, DECISION_LABEL, STATUS_LABEL, infoRequestMessage, lineShareUrl, meetsFollowerRule, type ApplicantStatus } from "@/lib/kol-core";
 import { Avatar, SocialChips, StatusBadge, fmtDateTime, fmtDate, Note } from "@/components/kol/ui";
 import { AnswersView } from "@/components/kol/answers";
-import { ActionForm, ComposeBox, MessageOut, RevealCopy } from "@/components/kol/client";
+import { ActionForm, ComposeBox, CopyButton, MessageOut, RevealCopy } from "@/components/kol/client";
 import {
   addKolComment, addReviewNote, eraseApplicant, issueApplicantLink, rejectAtScreening, requestInfoFromApplicant, revokeApplicantLink, sendToCeo, shortlistApplicant,
 } from "../../actions";
@@ -32,6 +33,12 @@ export default async function ApplicantPage({ params }: { params: Promise<{ id: 
   const minF = terms?.minFollowers ?? 0;
   const prev = a.reviews.filter((r) => r.kind === "note");
   const lastAsk = a.reviews.filter((r) => r.kind === "request_info").at(-1); // reviews are oldest first
+  // Link to the pending CEO card, for Marketing to send the CEO (opens that card after the CEO is signed in).
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const ceoUrl = st === "pending_ceo" && lastRound?.status === "pending" && host ? `${proto}://${host}/kol/ceo?card=${lastRound.id}` : null;
+  const ceoMsg = ceoUrl && lastRound ? ceoCardMessage({ ref: applicantRef(a.refNo), name: a.creatorName, pitch: lastRound.shortPitch, url: ceoUrl }) : "";
 
   return (
     <>
@@ -120,6 +127,18 @@ export default async function ApplicantPage({ params }: { params: Promise<{ id: 
               <div className="k-card-h"><h2 id="h-act"><Send aria-hidden="true" />การดำเนินการ</h2></div>
               {st === "shortlisted" && <Note tone="ok">ย้ายเข้ารายชื่อผ่านการคัดกรองแล้ว — กรอกข้อมูลด้านล่างเพื่อเสนอ CEO พิจารณา</Note>}
               {st === "pending_ceo" && <Note>ส่งการ์ดให้ CEO แล้ว · รอ CEO พิจารณา — Marketing เพิ่มความคิดเห็นได้ แต่เปลี่ยนผลการอนุมัติไม่ได้</Note>}
+              {ceoUrl && (
+                <div style={{ marginTop: 10 }} id="ceo-link">
+                  <span className="k-label">ลิงก์การ์ด CEO — ส่งให้ CEO เปิดดูและตัดสินใจ (CEO ต้องเข้าสู่ระบบ)</span>
+                  <div className="k-msgbox">{ceoUrl}</div>
+                  <div className="k-actions" style={{ marginTop: 8 }}>
+                    <CopyButton text={ceoUrl} label="คัดลอกลิงก์" />
+                    <CopyButton text={ceoMsg} label="คัดลอกข้อความ" className="k-btn sm ghost" />
+                    <a className="k-btn sm sky" href={lineShareUrl(ceoMsg)} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" />เปิด LINE เพื่อส่งเอง</a>
+                  </div>
+                  <p className="k-hint">ระบบยังไม่ส่ง LINE ให้อัตโนมัติ — คัดลอกไปส่งเอง</p>
+                </div>
+              )}
               {st === "ceo_info_requested" && lastRound?.decision?.note && <Note tone="warn"><b>CEO ขอข้อมูลเพิ่ม:</b> {lastRound.decision.note}</Note>}
               {st === "info_requested" && <Note tone="warn">รอผู้สมัครส่งข้อมูลเพิ่ม — เมื่อได้รับแล้วกดผ่านการคัดกรองหรือเสนอ CEO ได้เลย</Note>}
               {st === "info_requested" && lastAsk?.body && (

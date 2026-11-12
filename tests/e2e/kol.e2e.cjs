@@ -192,6 +192,22 @@ async function sendToCeo(page, id, pitch) {
     await mkt.page.goto(`${BASE}/kol/applicants/${idA}`);
     await mkt.page.getByText("รอ CEO พิจารณา — Marketing").waitFor();
   });
+  await check("C3b Marketing copies the CEO card link; the CEO opens it on iPhone and lands on that card", async () => {
+    await mkt.page.goto(`${BASE}/kol/applicants/${idA}`);
+    const box = mkt.page.locator("#ceo-link");
+    await box.getByRole("button", { name: "คัดลอกลิงก์" }).click();
+    await box.getByText("คัดลอกแล้ว").waitFor();
+    const url = await mkt.page.evaluate(() => navigator.clipboard.readText());
+    assert.match(url, /\/kol\/ceo\?card=[0-9a-f-]{36}$/);
+    await box.getByRole("button", { name: "คัดลอกข้อความ" }).click();
+    const msg = await mkt.page.evaluate(() => navigator.clipboard.readText());
+    assert.ok(msg.includes(refA) && msg.includes(url), "message has the reference and the link");
+    const c = await login(browser, process.env.CEO_EMAIL, process.env.CEO_PASSWORD, IPHONE);
+    await c.page.goto(url);
+    const card = c.page.locator(".k-ceo", { hasText: A.creator });
+    await card.getByRole("button", { name: "Approve" }).waitFor(); // opened and expanded, decision buttons visible
+    await c.ctx.close();
+  });
   await check("C4 Marketing sees the CEO queue but has no decision buttons", async () => {
     await mkt.page.goto(`${BASE}/kol/ceo`);
     const card = mkt.page.locator(".k-ceo", { hasText: A.creator });

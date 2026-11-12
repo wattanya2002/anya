@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   TRANSITIONS, canTransition, APPLICANT_STATUSES, BUCKET_STATUSES, creditSummary, deliverableProgress, applicantRef, meetsFollowerRule,
-  suggestPromoCode, isPromoCode, registrationMessage, initials, compactNumber, parseBucket, parseCeoTab, STATUS_LABEL, PUBLIC_STATUS,
+  suggestPromoCode, isPromoCode, registrationMessage, initials, compactNumber, parseBucket, parseCeoTab, STATUS_LABEL, PUBLIC_STATUS, ceoCardMessage,
 } from "../../lib/kol-core.ts";
 
 test("marketing can never produce an approval; only the CEO decides pending cards", () => {
@@ -56,4 +56,11 @@ test("labels and generated text", () => {
   const msg = registrationMessage({ name: "SJ", url: "https://x.test/r/abc", expiresAt: new Date("2026-11-26T05:00:00Z") });
   assert.match(msg, /https:\/\/x\.test\/r\/abc/);
   assert.match(msg, /26 พ\.ย\. 2569/);
+});
+
+test("CEO card message carries the reference, the pitch and the card link; an empty pitch leaves no blank line", () => {
+  const url = "https://example.test/kol/ceo?card=00000000-0000-4000-8000-000000000001";
+  const m = ceoCardMessage({ ref: "KOL-0007", name: "Mint", pitch: "สายฟิตเนส 12K", url });
+  assert.equal(m, `มีการ์ด KOL รอ CEO พิจารณา\nKOL-0007 · Mint\nสายฟิตเนส 12K\nเปิดการ์ด: ${url}`);
+  assert.ok(!ceoCardMessage({ ref: "KOL-0007", name: "Mint", pitch: "  ", url }).includes("\n\n"));
 });
