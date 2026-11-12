@@ -9,6 +9,7 @@ import { getSession } from "@/lib/session";
 import { can, getCurrentUser } from "@/lib/auth";
 import { DUMMY_HASH, hashPassword, verifyPassword } from "@/lib/password";
 import { bangkokToday } from "@/lib/dates";
+import { safeNext } from "@/lib/safe-next";
 
 export type FormState = { error?: string; ok?: string; warn?: string; nonce?: string; fields?: Record<string, string> };
 
@@ -54,7 +55,7 @@ export async function signIn(_prev: FormState, form: FormData): Promise<FormStat
   session.userId = user.id;
   session.sessionVersion = user.session_version;
   await session.save();
-  redirect("/");
+  redirect(safeNext(form.get("next")) ?? "/");
 }
 
 export async function signOut() {

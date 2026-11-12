@@ -33,11 +33,11 @@ export default async function ApplicantPage({ params }: { params: Promise<{ id: 
   const minF = terms?.minFollowers ?? 0;
   const prev = a.reviews.filter((r) => r.kind === "note");
   const lastAsk = a.reviews.filter((r) => r.kind === "request_info").at(-1); // reviews are oldest first
-  // Link to the pending CEO card, for Marketing to send the CEO (opens that card after the CEO is signed in).
+  // Link to the pending CEO card, for Marketing to send the CEO (goes through sign-in and back to the card).
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const ceoUrl = st === "pending_ceo" && lastRound?.status === "pending" && host ? `${proto}://${host}/kol/ceo?card=${lastRound.id}` : null;
+  const ceoUrl = st === "pending_ceo" && lastRound?.status === "pending" && host ? `${proto}://${host}/kol/ceo/card/${lastRound.id}` : null;
   const ceoMsg = ceoUrl && lastRound ? ceoCardMessage({ ref: applicantRef(a.refNo), name: a.creatorName, pitch: lastRound.shortPitch, url: ceoUrl }) : "";
 
   return (
@@ -129,7 +129,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ id: 
               {st === "pending_ceo" && <Note>ส่งการ์ดให้ CEO แล้ว · รอ CEO พิจารณา — Marketing เพิ่มความคิดเห็นได้ แต่เปลี่ยนผลการอนุมัติไม่ได้</Note>}
               {ceoUrl && (
                 <div style={{ marginTop: 10 }} id="ceo-link">
-                  <span className="k-label">ลิงก์การ์ด CEO — ส่งให้ CEO เปิดดูและตัดสินใจ (CEO ต้องเข้าสู่ระบบ)</span>
+                  <span className="k-label">ลิงก์การ์ด CEO — ส่งให้ CEO เปิดดูและตัดสินใจ (ถ้ายังไม่ได้เข้าสู่ระบบ จะให้เข้าสู่ระบบก่อน แล้วกลับมาที่การ์ดนี้)</span>
                   <div className="k-msgbox">{ceoUrl}</div>
                   <div className="k-actions" style={{ marginTop: 8 }}>
                     <CopyButton text={ceoUrl} label="คัดลอกลิงก์" />

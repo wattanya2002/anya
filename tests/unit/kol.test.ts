@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   TRANSITIONS, canTransition, APPLICANT_STATUSES, BUCKET_STATUSES, creditSummary, deliverableProgress, applicantRef, meetsFollowerRule,
-  suggestPromoCode, isPromoCode, registrationMessage, initials, compactNumber, parseBucket, parseCeoTab, STATUS_LABEL, PUBLIC_STATUS, ceoCardMessage,
+  suggestPromoCode, isPromoCode, registrationMessage, initials, compactNumber, parseBucket, parseCeoTab, STATUS_LABEL, PUBLIC_STATUS, ceoCardMessage, refFromQuery,
 } from "../../lib/kol-core.ts";
 
 test("marketing can never produce an approval; only the CEO decides pending cards", () => {
@@ -63,4 +63,9 @@ test("CEO card message carries the reference, the pitch and the card link; an em
   const m = ceoCardMessage({ ref: "KOL-0007", name: "Mint", pitch: "สายฟิตเนส 12K", url });
   assert.equal(m, `มีการ์ด KOL รอ CEO พิจารณา\nKOL-0007 · Mint\nสายฟิตเนส 12K\nเปิดการ์ด: ${url}`);
   assert.ok(!ceoCardMessage({ ref: "KOL-0007", name: "Mint", pitch: "  ", url }).includes("\n\n"));
+});
+
+test("search by reference only when the query is a reference; digits inside a name never match another applicant", () => {
+  for (const [q, n] of [["KOL-0026", 26], ["kol26", 26], ["KOL 7", 7], ["#12", 12], ["0026", 26], [" 26 ", 26]] as const) assert.equal(refFromQuery(q), n, q);
+  for (const q of ["E2ESJaq6ao", "mint99", "0812345678x", "KOL-", "abc", ""]) assert.equal(refFromQuery(q), null, q);
 });

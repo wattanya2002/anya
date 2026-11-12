@@ -177,6 +177,12 @@ export function registrationMessage(o: { name: string; url: string; expiresAt: D
 export function infoRequestMessage(o: { name: string; ref: string; reason: string }): string {
   return [`สวัสดีค่ะ คุณ${o.name}`, `ทีมงาน Wonder Courts ขอข้อมูลเพิ่มเติมสำหรับใบสมัคร ${o.ref}`, o.reason, "ตอบกลับทาง LINE @wondercourts ได้เลยค่ะ"].join("\n");
 }
+/** A search that is a reference ("KOL-0026", "kol26", "#26", "26") → 26. A name that only contains digits → null. */
+export function refFromQuery(q: string): number | null {
+  const m = /^\s*(?:kol[-\s]?|#)?0*(\d{1,9})\s*$/i.exec(q);
+  return m ? Number(m[1]) : null;
+}
+
 /** Message Marketing sends the CEO with the card link (the system does not send it). */
 export function ceoCardMessage(o: { ref: string; name: string; pitch: string; url: string }): string {
   return ["มีการ์ด KOL รอ CEO พิจารณา", `${o.ref} · ${o.name}`, o.pitch.trim() || null, `เปิดการ์ด: ${o.url}`].filter(Boolean).join("\n");

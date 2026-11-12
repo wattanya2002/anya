@@ -6,7 +6,7 @@ import type { CurrentUser } from "./auth";
 import { normalizeSchema, type FormSchema, type Answers } from "./forms-core";
 import { DEFAULT_TERMS, applicationSchema, registrationSchema } from "./kol-defaults";
 import { publishVersion, filesOfSubmission, type FileMeta } from "./forms-server";
-import { BUCKET_STATUSES, type ApplicantStatus, type BucketKey, type CeoTab, type SortKey, type DeliverableStatus, type VisitStatus, type DeliverableTemplate } from "./kol-core";
+import { BUCKET_STATUSES, refFromQuery, type ApplicantStatus, type BucketKey, type CeoTab, type SortKey, type DeliverableStatus, type VisitStatus, type DeliverableTemplate } from "./kol-core";
 import { randomBytes } from "node:crypto";
 
 // ---------------------------------------------------------------- shared write helpers
@@ -164,7 +164,7 @@ export async function listApplicants(orgId: string, o: { bucket: BucketKey; q: s
   if (o.q) {
     args.push(`%${o.q.replace(/[%_\\]/g, (m) => `\\${m}`)}%`);
     const p = args.length;
-    args.push(o.q.replace(/\D/g, "") || "-1");
+    args.push(String(refFromQuery(o.q) ?? -1)); // only a reference-shaped query matches KOL-0001 (not digits inside a name)
     where += ` and (a.full_name ilike $${p} or a.creator_name ilike $${p} or coalesce(a.line_id,'') ilike $${p} or coalesce(a.phone,'') ilike $${p}
                     or a.ref_no::text = $${args.length} or exists (select 1 from kol_social_accounts s where s.applicant_id = a.id and coalesce(s.url,'') ilike $${p}))`;
   }

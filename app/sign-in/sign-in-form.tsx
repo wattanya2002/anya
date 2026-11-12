@@ -2,10 +2,11 @@
 import { useActionState } from "react";
 import { signIn, type FormState } from "@/app/actions";
 
-export function SignInForm() {
+export function SignInForm({ next }: { next?: string | null }) {
   const [state, action, pending] = useActionState<FormState, FormData>(signIn, {});
   return (
     <form action={action} style={{ display: "grid", gap: 14 }}>
+      {next && <input type="hidden" name="next" value={next} />}
       <div className="field">
         <label htmlFor="email">อีเมล</label>
         <input id="email" name="email" type="email" autoComplete="username" inputMode="email" required defaultValue={state.fields?.email} />

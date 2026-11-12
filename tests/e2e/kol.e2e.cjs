@@ -192,21 +192,39 @@ async function sendToCeo(page, id, pitch) {
     await mkt.page.goto(`${BASE}/kol/applicants/${idA}`);
     await mkt.page.getByText("รอ CEO พิจารณา — Marketing").waitFor();
   });
-  await check("C3b Marketing copies the CEO card link; the CEO opens it on iPhone and lands on that card", async () => {
+  await check("C3b Marketing copies the CEO card link; a signed-out CEO opens it on iPhone, signs in and lands on that card", async () => {
     await mkt.page.goto(`${BASE}/kol/applicants/${idA}`);
     const box = mkt.page.locator("#ceo-link");
     await box.getByRole("button", { name: "คัดลอกลิงก์" }).click();
     await box.getByText("คัดลอกแล้ว").waitFor();
     const url = await mkt.page.evaluate(() => navigator.clipboard.readText());
-    assert.match(url, /\/kol\/ceo\?card=[0-9a-f-]{36}$/);
+    assert.match(url, /\/kol\/ceo\/card\/[0-9a-f-]{36}$/);
     await box.getByRole("button", { name: "คัดลอกข้อความ" }).click();
     const msg = await mkt.page.evaluate(() => navigator.clipboard.readText());
     assert.ok(msg.includes(refA) && msg.includes(url), "message has the reference and the link");
-    const c = await login(browser, process.env.CEO_EMAIL, process.env.CEO_PASSWORD, IPHONE);
-    await c.page.goto(url);
-    const card = c.page.locator(".k-ceo", { hasText: A.creator });
-    await card.getByRole("button", { name: "Approve" }).waitFor(); // opened and expanded, decision buttons visible
-    await c.ctx.close();
+    const cardId = url.split("/").pop();
+    const ctx = await browser.newContext(IPHONE);
+    const p = await ctx.newPage();
+    await p.goto(url); // signed out: sign in first, then back to the card
+    await p.waitForURL((u) => u.pathname === "/sign-in" && u.searchParams.get("next") === `/kol/ceo?card=${cardId}`);
+    await p.fill("#email", process.env.CEO_EMAIL);
+    await p.fill("#password", process.env.CEO_PASSWORD);
+    await Promise.all([p.waitForURL((u) => u.pathname === "/kol/ceo" && u.searchParams.get("card") === cardId), p.click("button[type=submit]")]);
+    const card = p.locator(".k-ceo", { hasText: A.creator });
+    await card.getByRole("button", { name: "Approve" }).waitFor(); // that card, opened, with the decision buttons
+    await p.goto(url); // already signed in: straight to the card
+    await p.waitForURL((u) => u.pathname === "/kol/ceo" && u.searchParams.get("card") === cardId);
+    await ctx.close();
+    // a crafted return address to another site is ignored after sign-in
+    const x = await browser.newContext();
+    const q = await x.newPage();
+    await q.goto(`${BASE}/sign-in?next=${encodeURIComponent("//evil.example/kol")}`);
+    await q.fill("#email", process.env.CEO_EMAIL);
+    await q.fill("#password", process.env.CEO_PASSWORD);
+    await Promise.all([q.waitForURL((u) => !u.pathname.startsWith("/sign-in")), q.click("button[type=submit]")]);
+    assert.equal(new URL(q.url()).origin, new URL(BASE).origin);
+    assert.equal(new URL(q.url()).pathname, "/");
+    await x.close();
   });
   await check("C4 Marketing sees the CEO queue but has no decision buttons", async () => {
     await mkt.page.goto(`${BASE}/kol/ceo`);
