@@ -11,6 +11,7 @@ const RUN = Date.now().toString(36).slice(-5);
 const results = [];
 const check = async (name, fn) => {
   try { await fn(); results.push(["PASS", name]); } catch (e) { results.push(["FAIL", name, String(e.message).split("\n")[0]]); }
+  console.log(results.at(-1).join(" | ")); // progress as each step finishes
 };
 const IPHONE = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3,
   userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1" };
@@ -40,6 +41,11 @@ async function layoutOk(page) {
   });
 }
 
+/** The public form refuses submissions sent within 2.5 s of the page render (bot guard); wait like a person would. */
+async function humanPace(page) {
+  const t = await page.evaluate(() => performance.now());
+  if (t < 3200) await page.waitForTimeout(3200 - t);
+}
 async function applyPublic(browser, o) {
   const ctx = await browser.newContext({ ...IPHONE, ...(o.ua ? { userAgent: o.ua } : {}) });
   const page = await ctx.newPage();
@@ -79,7 +85,9 @@ async function applyPublic(browser, o) {
   await page.getByRole("button", { name: "ตรวจสอบข้อมูล" }).click();
   await page.getByText("ตรวจสอบข้อมูลก่อนส่ง").waitFor();
   const submit = page.getByRole("button", { name: /ส่งใบสมัคร/ });
-  if (o.doubleTap) { await Promise.all([submit.click(), submit.click({ force: true }).catch(() => {})]); } else await submit.click();
+  await humanPace(page);
+  // double tap: two clicks in the same frame, before React can disable the button
+  if (o.doubleTap) await submit.evaluate((b) => { b.click(); b.click(); }); else await submit.click();
   await page.getByText("ส่งใบสมัครเรียบร้อยแล้ว").waitFor({ timeout: 20000 });
   const ref = (await page.locator(".pf-ref b").textContent()).trim();
   const statusUrl = (await page.locator(".pf-statuslink code").textContent()).trim();
@@ -95,13 +103,13 @@ async function applicantIdFromList(page, creator) {
 async function sendToCeo(page, id, pitch) {
   await page.goto(`${BASE}/kol/applicants/${id}`);
   const det = page.locator("details", { hasText: "เสนอ CEO พิจารณา" });
-  if (!(await det.getAttribute("open"))) await det.locator("summary").click();
+  if ((await det.getAttribute("open")) === null) await det.locator("summary").click();
   await page.fill("input[name=short_pitch]", pitch);
   await page.fill("textarea[name=opinion]", "แนวคอนเทนต์ตรงกลุ่ม ผู้ติดตามมีส่วนร่วมดี");
   await page.fill("textarea[name=highlights]", "คลิปสั้นตัดต่อดี");
   await page.fill("textarea[name=cautions]", "ยังไม่เคยเล่นเทนนิส ต้องมีโค้ช");
   await page.getByRole("button", { name: "ส่งการ์ดให้ CEO" }).click();
-  await page.getByText("ส่งการ์ดให้ CEO แล้ว").waitFor();
+  await page.getByText("ส่งการ์ดให้ CEO แล้ว").first().waitFor();
 }
 
 (async () => {
@@ -112,7 +120,7 @@ async function sendToCeo(page, id, pitch) {
   const A = { name: `${PREFIX} สมใจ ${RUN}`, creator: `${PREFIX}SJ${RUN}` };
   const B = { name: `${PREFIX} บุญมี ${RUN}`, creator: `${PREFIX}BM${RUN}` };
   const C = { name: `${PREFIX} ชาตรี ${RUN}`, creator: `${PREFIX}CT${RUN}` };
-  let refA = "", statusUrlA = "", idA = "", idB = "", idC = "", regUrl = "";
+  let refA = "", statusUrlA = "", idA = "", idB = "", idC = "", regUrl = "", vA = 0, vNew = 0;
 
   await check("setup: /kol creates the KOL campaign + published application form; dashboard shows the public link", async () => {
     await owner.page.goto(`${BASE}/kol`);
@@ -162,6 +170,7 @@ async function sendToCeo(page, id, pitch) {
     await mkt.page.goto(`${BASE}/kol/applicants/${idA}`);
     await mkt.page.getByRole("heading", { name: A.creator }).waitFor();
     assert.ok(await mkt.page.getByText("คำตอบฟอร์มทั้งหมด").count());
+    vA = Number((await mkt.page.getByText(/^ฟอร์ม v\d+$/).first().textContent()).match(/v(\d+)/)[1]); // version applicant A answered
     assert.ok(await mkt.page.locator(`a[href^="https://instagram.com/${A.creator}"]`).count());
     const img = await mkt.page.locator(".k-av img").first().getAttribute("src");
     const res = await mkt.page.request.get(`${BASE}${img}`);
@@ -176,7 +185,7 @@ async function sendToCeo(page, id, pitch) {
   });
   await check("C3 Shortlist, then Send to CEO creates a real approval request", async () => {
     await mkt.page.getByRole("button", { name: /ผ่านการคัดกรอง \(Shortlist\)/ }).click();
-    await mkt.page.getByText("ย้ายเข้ารายชื่อผ่านการคัดกรองแล้ว").waitFor();
+    await mkt.page.getByText("ย้ายเข้ารายชื่อผ่านการคัดกรองแล้ว").first().waitFor();
     await sendToCeo(mkt.page, idA, `เสนอ ${A.creator}`);
     await sendToCeo(mkt.page, idB, `เสนอ ${B.creator}`);
     await sendToCeo(mkt.page, idC, `เสนอ ${C.creator}`);
@@ -259,9 +268,9 @@ async function sendToCeo(page, id, pitch) {
   });
   await check("D6 statuses agree on every page (Marketing dashboard + applicant page)", async () => {
     await mkt.page.goto(`${BASE}/kol?bucket=awaiting_step2`);
-    await mkt.page.getByText(A.creator).waitFor();
+    await mkt.page.locator(".k-item", { hasText: A.creator }).first().waitFor();
     await mkt.page.goto(`${BASE}/kol?bucket=rejected`);
-    await mkt.page.getByText(C.creator).waitFor();
+    await mkt.page.locator(".k-item", { hasText: C.creator }).first().waitFor();
     await mkt.page.goto(`${BASE}/kol/applicants/${idB}`);
     await mkt.page.getByText("CEO ขอข้อมูลเพิ่ม:").waitFor();
   });
@@ -360,10 +369,18 @@ async function sendToCeo(page, id, pitch) {
   });
 
   // ------------------------------------------------------------ Test B — Form Builder + versioning
-  await check("B1 Form Builder: add, rename, require, condition, reorder a question, publish v2", async () => {
+  await check("B1 Form Builder: add, rename, require, condition, reorder a question, publish a new version", async () => {
     const p = mkt.page;
     await p.goto(`${BASE}/kol/forms`);
-    await p.locator(".k-form-card", { hasText: "KOL Application Form" }).getByRole("link", { name: "Edit" }).click();
+    await p.locator(".k-form-card", { hasText: "สมัคร KOL / Influencers" }).getByRole("link", { name: "Edit" }).click();
+    await p.waitForURL(/\/edit$/);
+    const discard = p.getByRole("button", { name: "ยกเลิกการแก้ไข" });
+    if (await discard.count()) { // leftover unpublished draft from an interrupted run: start from the published version
+      await discard.click();
+      await p.locator("dialog[open]").getByRole("button", { name: "ยกเลิกการแก้ไข" }).click();
+      await p.waitForLoadState("load");
+      await discard.waitFor({ state: "detached" });
+    }
     const sec = p.locator(".fe-sec").nth(2);
     await sec.getByRole("button", { name: "เพิ่มคำถาม" }).click();
     await sec.getByRole("menuitem", { name: "ข้อความสั้น" }).click();
@@ -377,9 +394,12 @@ async function sendToCeo(page, id, pitch) {
     await field.getByRole("button", { name: "ย้ายคำถามขึ้น" }).click();
     await p.getByText("บันทึกร่างแล้ว").waitFor({ timeout: 10000 });
     await p.getByRole("button", { name: /Publish/ }).click();
-    await p.getByText(/เผยแพร่เวอร์ชัน 2 แล้ว/).waitFor({ timeout: 15000 });
+    const msg = p.getByText(/เผยแพร่เวอร์ชัน \d+ แล้ว/);
+    await msg.waitFor({ timeout: 15000 });
+    vNew = Number((await msg.textContent()).match(/เวอร์ชัน (\d+)/)[1]);
+    assert.ok(vNew > vA, `new version ${vNew} is after the one applicant A used (${vA})`);
   });
-  await check("B2 public form shows the new question only under its condition; old answers still read v1", async () => {
+  await check("B2 public form shows the new question only under its condition; old answers still read their own version", async () => {
     const ctx = await browser.newContext(IPHONE);
     const p = await ctx.newPage();
     await p.goto(`${BASE}/f/${slug}`);
@@ -395,12 +415,12 @@ async function sendToCeo(page, id, pitch) {
     await p.getByText(`E2E คำถามใหม่ ${RUN}`).waitFor();
     await ctx.close();
     await mkt.page.goto(`${BASE}/kol/applicants/${idA}`);
-    await mkt.page.getByText("ฟอร์ม v1").waitFor();
+    await mkt.page.getByText(`ฟอร์ม v${vA}`).waitFor();
   });
-  await check("B3 deleting the question and publishing v3 keeps old answers; workflow-critical mapping is protected", async () => {
+  await check("B3 workflow-critical mapping is protected; deleting the question and publishing again keeps old answers", async () => {
     const p = mkt.page;
     await p.goto(`${BASE}/kol/forms`);
-    await p.locator(".k-form-card", { hasText: "KOL Application Form" }).getByRole("link", { name: "Edit" }).click();
+    await p.locator(".k-form-card", { hasText: "สมัคร KOL / Influencers" }).getByRole("link", { name: "Edit" }).click();
     const f = p.locator(".fe-field", { hasText: `E2E คำถามใหม่ ${RUN}` });
     await f.getByRole("button", { name: "แก้ไขคำถาม" }).click();
     await f.getByRole("button", { name: "ลบคำถาม" }).click();
@@ -418,12 +438,24 @@ async function sendToCeo(page, id, pitch) {
     await p.locator("dialog[open]").getByRole("button", { name: "ยกเลิกการแก้ไข" }).click();
     await p.waitForLoadState("load");
     await p.locator(".fe-field", { hasText: "เบอร์โทรศัพท์" }).first().waitFor();
+    // now really remove the test question and publish the next version
+    const q = p.locator(".fe-field", { hasText: `E2E คำถามใหม่ ${RUN}` });
+    await q.getByRole("button", { name: "แก้ไขคำถาม" }).click();
+    await q.getByRole("button", { name: "ลบคำถาม" }).click();
+    await p.locator("dialog[open]").getByRole("button", { name: "ลบคำถาม" }).click();
+    await p.getByText("บันทึกร่างแล้ว").waitFor({ timeout: 10000 });
+    await p.getByRole("button", { name: /Publish/ }).click();
+    await p.getByText(`เผยแพร่เวอร์ชัน ${vNew + 1} แล้ว`).waitFor({ timeout: 15000 });
+    await p.goto(`${BASE}/f/${slug}`);
+    assert.equal(await p.getByText(`E2E คำถามใหม่ ${RUN}`).count(), 0, "deleted question is gone from the live form");
+    await p.goto(`${BASE}/kol/applicants/${idA}`);
+    await p.getByText(`ฟอร์ม v${vA}`).waitFor();
   });
   await check("B4 responses list + CSV and Excel export with all versions", async () => {
     const p = mkt.page;
     await p.goto(`${BASE}/kol/forms`);
-    await p.locator(".k-form-card", { hasText: "KOL Application Form" }).getByRole("link", { name: "View Responses" }).click();
-    await p.getByText(refA).waitFor();
+    await p.locator(".k-form-card", { hasText: "สมัคร KOL / Influencers" }).getByRole("link", { name: "View Responses" }).click();
+    await p.getByText(refA, { exact: true }).first().waitFor();
     const href = await p.getByRole("link", { name: "Export CSV" }).getAttribute("href");
     const csv = await p.request.get(`${BASE}${href}`);
     const text = await csv.text();
@@ -435,7 +467,7 @@ async function sendToCeo(page, id, pitch) {
   await check("B5 Preview Mobile / Desktop render the real form without saving", async () => {
     const p = mkt.page;
     await p.goto(`${BASE}/kol/forms`);
-    await p.locator(".k-form-card", { hasText: "KOL Application Form" }).getByRole("link", { name: "Preview" }).click();
+    await p.locator(".k-form-card", { hasText: "สมัคร KOL / Influencers" }).getByRole("link", { name: "Preview" }).click();
     await p.getByText("ตัวอย่างฟอร์ม — กดส่งได้แต่ไม่บันทึกข้อมูล").waitFor();
     await p.getByRole("link", { name: "Desktop" }).click();
     await p.locator(".pv-frame[data-device=desktop]").waitFor();
@@ -457,11 +489,10 @@ async function sendToCeo(page, id, pitch) {
       await m.ctx.close();
     }
     const bad = layout.filter(([, r]) => r.overflow.length || r.wide.length || r.small.length);
-    assert.deepEqual(bad.map(([n, r]) => `${n}: ${JSON.stringify(r)}`), []);
+    assert.equal(bad.length, 0, bad.map(([n, r]) => `${n}: ${JSON.stringify(r)}`).join(" ; "));
   });
 
   await browser.close();
-  for (const r of results) console.log(r.join(" | "));
   const failed = results.filter((r) => r[0] === "FAIL").length;
   console.log(`\n${results.length - failed}/${results.length} passed`);
   process.exit(failed ? 1 : 0);

@@ -77,8 +77,8 @@ export async function ensureKolSetup(user: CurrentUser): Promise<KolSetup> {
     }
     const ids: Record<string, string> = {};
     for (const [key, purpose, title, slugBase, schema] of [
-      ["kol_application", "kol_application", "KOL Application Form", "kol-apply", applicationSchema()],
-      ["kol_registration", "kol_registration", "Selected KOL Registration", "kol-register", registrationSchema()],
+      ["kol_application", "kol_application", "สมัคร KOL / Influencers Wonder Courts", "kol-apply", applicationSchema()],
+      ["kol_registration", "kol_registration", "ข้อมูล KOL/Influencers Wonder Courts", "kol-register", registrationSchema()],
     ] as const) {
       const found = (await c.query(`select id from forms where org_id = $1 and system_key = $2`, [user.orgId, key])).rows[0];
       if (found) { ids[key] = found.id; continue; }

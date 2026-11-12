@@ -334,15 +334,18 @@ function FieldInput({ f, value, error, onChange, prefilled, formId, token, previ
     );
   }
   if (f.type === "checkbox" || f.type === "consent") {
+    // Consent with its own confirmation text: question as heading, the text beside the box. Otherwise the question sits beside the box.
+    const split = f.type === "consent" && !!f.description;
     return (
       <div className="pf-field">
-        {f.type === "consent" && <span className="pf-label">{label}</span>}
+        {split && <span className="pf-label" id={`${id}-q`}>{label}</span>}
         <label className="pf-consent">
-          <input {...common} type="checkbox" checked={value === true} onChange={(e) => onChange(e.target.checked)} />
+          <input {...common} type="checkbox" checked={value === true} onChange={(e) => onChange(e.target.checked)}
+            aria-describedby={[split ? `${id}-q` : null, !split && f.description ? descId : null, errId].filter(Boolean).join(" ") || undefined} />
           <span className="pf-mark"><Check aria-hidden="true" /></span>
-          <span>{f.type === "consent" ? f.description || "ยืนยัน" : <>{f.label}{f.required && <span className="pf-req" aria-hidden="true">*</span>}</>}</span>
+          <span>{split ? f.description : <>{f.label}{f.required && <span className="pf-req" aria-hidden="true">*</span>}</>}</span>
         </label>
-        {f.type === "checkbox" && f.description && <p id={descId} className="pf-desc">{f.description}</p>}
+        {!split && f.description && <p id={descId} className="pf-desc">{f.description}</p>}
         {err}
       </div>
     );

@@ -5,7 +5,7 @@ import { allFields, extractMapped, isFileType, validateAnswers, type Answers, ty
 import { applicantRef, submissionRef, TRANSITIONS } from "./kol-core";
 import { audit, currentTerms, logStatus, notifyPermission } from "./kol";
 import { publishedById, publishedBySlug, type PublishedForm } from "./forms-server";
-import { claimMatches, encryptToken, hashToken, newToken } from "./kol-security";
+import { claimMatches, decryptToken, encryptToken, hashToken, newToken } from "./kol-security";
 
 export class IntakeError extends Error {
   constructor(message: string, public fields?: Record<string, string>) { super(message); }
@@ -36,6 +36,11 @@ async function attachFiles(c: PoolClient, form: PublishedForm, schema: FormSchem
 
 type Meta = { ipHash: string; userAgent: string | null };
 
+/** Two requests with the same client key (double tap, retry) run one after the other, so the second sees the first. */
+async function lockClientKey(c: PoolClient, formId: string, clientKey: string) {
+  await c.query(`select pg_advisory_xact_lock(hashtextextended($1, 0))`, [`form-submit:${formId}:${clientKey}`]);
+}
+
 /** STEP 1 / general public form. Idempotent per client key: a double tap returns the first result. */
 export async function submitPublicForm(o: { slug: string; versionId: string; termsId: string | null; clientKey: string; raw: Record<string, unknown>; meta: Meta; baseUrl: string }):
   Promise<{ ref: string; statusUrl: string | null; successTitle: string; successMessage: string }> {
@@ -47,10 +52,15 @@ export async function submitPublicForm(o: { slug: string; versionId: string; ter
   if (Object.keys(errors).length) throw new IntakeError("ยังมีช่องที่ต้องแก้ไข", errors);
 
   return withTransaction(async (c) => {
+    await lockClientKey(c, form.formId, o.clientKey);
     const dup = (await c.query(`select s.ref_no, s.applicant_id, a.ref_no as a_ref from form_submissions s left join kol_applicants a on a.id = s.applicant_id
                                  where s.form_id = $1 and s.client_key = $2`, [form.formId, o.clientKey])).rows[0];
     if (dup) {
-      return { ref: dup.a_ref ? applicantRef(dup.a_ref) : submissionRef(dup.ref_no), statusUrl: null,
+      // The same tap/retry gets the same result, including the applicant's status link.
+      const tok = dup.applicant_id ? decryptToken((await c.query(
+        `select token_enc from kol_access_tokens where applicant_id = $1 and purpose = 'status' and revoked_at is null and expires_at > now()
+          order by created_at desc limit 1`, [dup.applicant_id])).rows[0]?.token_enc ?? null) : null;
+      return { ref: dup.a_ref ? applicantRef(dup.a_ref) : submissionRef(dup.ref_no), statusUrl: tok ? `${o.baseUrl}/s/${tok}` : null,
         successTitle: form.schema.settings.successTitle, successMessage: form.schema.settings.successMessage };
     }
     let terms = null as Awaited<ReturnType<typeof currentTerms>>;
@@ -137,6 +147,7 @@ export async function submitRegistration(o: { token: string; versionId: string; 
   return withTransaction(async (c) => {
     const a = (await c.query(`select * from kol_applicants where id = $1 for update`, [who.applicantId])).rows[0];
     if (!a || !TRANSITIONS.register.from.includes(a.status)) throw new IntakeError("ใบสมัครนี้ยังไม่ได้รับสิทธิ์กรอกข้อมูลขั้นที่ 2");
+    await lockClientKey(c, form.formId, o.clientKey);
     const dup = (await c.query(`select id from form_submissions where form_id = $1 and client_key = $2`, [form.formId, o.clientKey])).rows[0];
     if (dup) return { ref: applicantRef(a.ref_no), title: form.schema.settings.successTitle, message: form.schema.settings.successMessage };
     const terms = await currentTerms(a.campaign_id, c);
@@ -174,7 +185,7 @@ export async function submitRegistration(o: { token: string; versionId: string; 
       [who.orgId, a.id, sub.id, m.visitDate ?? null, m.visitTime ?? null, m.coach ?? null, m.membershipName ?? null, m.notes ?? null, terms.id])).rows[0];
 
     // Campaign participant record: created once per applicant + campaign with the deliverables and credit of the terms in force.
-    const approvedAt = (await c.query(`select max(decided_at) as at from kol_approval_decisions d join kol_approval_requests r on r.id = d.approval_request_id
+    const approvedAt = (await c.query(`select max(d.decided_at) as at from kol_approval_decisions d join kol_approval_requests r on r.id = d.approval_request_id
                                         where r.applicant_id = $1 and d.decision = 'approved'`, [a.id])).rows[0].at ?? new Date();
     const part = (await c.query(
       `insert into kol_participants (org_id, applicant_id, campaign_id, terms_id, approved_at, visit_date, visit_time, visit_status, coach_required)

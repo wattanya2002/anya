@@ -110,7 +110,7 @@ export default async function KolOverview({ searchParams }: { searchParams: SP }
                 </div>
                 {a.categories.length > 0 && <div className="k-chips" style={{ marginTop: 8 }}>{a.categories.map((c) => <span key={c} className="k-tag">{c}</span>)}</div>}
               </div>
-              <div style={{ minWidth: 0 }}><SocialChips social={a.social} links={false} /></div>
+              <div className="k-item-social"><SocialChips social={a.social} links={false} /></div>
               <div className="k-item-foot">
                 <StatusBadge status={a.status} />
                 <Link href={`/kol/applicants/${a.id}`} className="k-btn sm soft">ดูรายละเอียด<ChevronRight aria-hidden="true" /></Link>

@@ -4,10 +4,10 @@ import { ArrowLeft, Ban, BadgeCheck, ClipboardCheck, ExternalLink, History, Link
 import { requireUser, can } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getApplicant, termsById } from "@/lib/kol";
-import { applicantRef, canTransition, DECISION_LABEL, STATUS_LABEL, meetsFollowerRule, type ApplicantStatus } from "@/lib/kol-core";
+import { applicantRef, canTransition, DECISION_LABEL, STATUS_LABEL, infoRequestMessage, meetsFollowerRule, type ApplicantStatus } from "@/lib/kol-core";
 import { Avatar, SocialChips, StatusBadge, fmtDateTime, fmtDate, Note } from "@/components/kol/ui";
 import { AnswersView } from "@/components/kol/answers";
-import { ActionForm, ComposeBox, RevealCopy } from "@/components/kol/client";
+import { ActionForm, ComposeBox, MessageOut, RevealCopy } from "@/components/kol/client";
 import {
   addKolComment, addReviewNote, eraseApplicant, issueApplicantLink, rejectAtScreening, requestInfoFromApplicant, revokeApplicantLink, sendToCeo, shortlistApplicant,
 } from "../../actions";
@@ -31,6 +31,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ id: 
   const statusLink = activeLinks.find((t) => t.purpose === "status");
   const minF = terms?.minFollowers ?? 0;
   const prev = a.reviews.filter((r) => r.kind === "note");
+  const lastAsk = a.reviews.filter((r) => r.kind === "request_info").at(-1); // reviews are oldest first
 
   return (
     <>
@@ -117,9 +118,16 @@ export default async function ApplicantPage({ params }: { params: Promise<{ id: 
           {review && !a.erasedAt && (
             <section className="k-card" aria-labelledby="h-act">
               <div className="k-card-h"><h2 id="h-act"><Send aria-hidden="true" />การดำเนินการ</h2></div>
-              {st === "pending_ceo" && <Note>รอ CEO พิจารณา — Marketing เพิ่มความคิดเห็นได้ แต่เปลี่ยนผลการอนุมัติไม่ได้</Note>}
+              {st === "shortlisted" && <Note tone="ok">ย้ายเข้ารายชื่อผ่านการคัดกรองแล้ว — กรอกข้อมูลด้านล่างเพื่อเสนอ CEO พิจารณา</Note>}
+              {st === "pending_ceo" && <Note>ส่งการ์ดให้ CEO แล้ว · รอ CEO พิจารณา — Marketing เพิ่มความคิดเห็นได้ แต่เปลี่ยนผลการอนุมัติไม่ได้</Note>}
               {st === "ceo_info_requested" && lastRound?.decision?.note && <Note tone="warn"><b>CEO ขอข้อมูลเพิ่ม:</b> {lastRound.decision.note}</Note>}
               {st === "info_requested" && <Note tone="warn">รอผู้สมัครส่งข้อมูลเพิ่ม — เมื่อได้รับแล้วกดผ่านการคัดกรองหรือเสนอ CEO ได้เลย</Note>}
+              {st === "info_requested" && lastAsk?.body && (
+                <div style={{ marginTop: 10 }}>
+                  <span className="k-label">ข้อความขอข้อมูลเพิ่ม (คัดลอกไปส่งทาง LINE — ระบบไม่ได้ส่งเอง)</span>
+                  <MessageOut text={infoRequestMessage({ name: a.creatorName, ref: applicantRef(a.refNo), reason: lastAsk.body })} />
+                </div>
+              )}
               {(st === "approved" || st === "registered") && <Note tone="ok">CEO อนุมัติแล้ว{st === "approved" ? " — ส่งลิงก์ STEP 2 ให้ KOL ทาง LINE" : " และ KOL ยืนยันข้อมูลแล้ว"}</Note>}
               {st === "rejected" && <Note tone="err">ไม่ผ่าน{a.rejectedStage === "ceo" ? "การพิจารณาของ CEO" : "การคัดกรอง"} — เปลี่ยนผลจากหน้านี้ไม่ได้</Note>}
 

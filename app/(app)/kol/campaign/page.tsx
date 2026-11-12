@@ -49,7 +49,7 @@ export default async function CampaignList() {
                   <div className="k-item-meta"><span>{applicantRef(p.refNo)}</span><span><CalendarDays aria-hidden="true" style={{ width: 14, height: 14, verticalAlign: -2 }} /> {p.visitDate ? `${fmtDate(p.visitDate)}${p.visitTime ? ` ${p.visitTime}` : ""}` : "ยังไม่นัด"}</span>
                     <span className="k-tag">{VISIT_LABEL[p.visitStatus]}</span></div>
                 </div>
-                <div style={{ minWidth: 0 }}>
+                <div className="k-item-social">
                   <div className="k-row between k-small"><span>ผลงาน {prog.verified}/{prog.total} ตรวจแล้ว</span><span className="k-muted">เครดิตเหลือ {cr.remaining} ชม.</span></div>
                   <div className="k-progress" style={{ marginTop: 6 }} role="img" aria-label={`ผลงานตรวจแล้ว ${prog.verified} จาก ${prog.total}`}><i style={{ width: `${prog.total ? (prog.verified / prog.total) * 100 : 0}%` }} /></div>
                   {p.promos.filter((x) => x.status === "active").map((x) => <span key={x.id} className="k-tag" style={{ marginTop: 6, marginRight: 4 }}>{x.code}</span>)}
