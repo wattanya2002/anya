@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   TRANSITIONS, canTransition, APPLICANT_STATUSES, BUCKET_STATUSES, creditSummary, deliverableProgress, applicantRef, meetsFollowerRule,
-  suggestPromoCode, isPromoCode, registrationMessage, initials, compactNumber, parseBucket, parseCeoTab, STATUS_LABEL, PUBLIC_STATUS, ceoCardMessage, refFromQuery,
+  suggestPromoCode, isPromoCode, registrationMessage, initials, compactNumber, parseBucket, parseCeoTab, STATUS_LABEL, PUBLIC_STATUS, ceoCardMessage, refFromQuery, socialHandle, decisionNote, INFO_REASONS, REJECT_REASONS,
 } from "../../lib/kol-core.ts";
 
 test("marketing can never produce an approval; only the CEO decides pending cards", () => {
@@ -68,4 +68,23 @@ test("CEO card message carries the reference, the pitch and the card link; an em
 test("search by reference only when the query is a reference; digits inside a name never match another applicant", () => {
   for (const [q, n] of [["KOL-0026", 26], ["kol26", 26], ["KOL 7", 7], ["#12", 12], ["0026", 26], [" 26 ", 26]] as const) assert.equal(refFromQuery(q), n, q);
   for (const q of ["E2ESJaq6ao", "mint99", "0812345678x", "KOL-", "abc", ""]) assert.equal(refFromQuery(q), null, q);
+});
+
+test("social handle comes from the real profile link; links without a handle give none", () => {
+  assert.equal(socialHandle("https://www.instagram.com/wonder.courts?cplk=MXBt"), "@wonder.courts");
+  assert.equal(socialHandle("instagram.com/aeng_watt"), "@aeng_watt");
+  assert.equal(socialHandle("https://www.tiktok.com/@aeng_watt?_r=1"), "@aeng_watt");
+  assert.equal(socialHandle("https://youtube.com/@mint"), "@mint");
+  assert.equal(socialHandle("https://www.facebook.com/profile.php?id=1"), null);
+  assert.equal(socialHandle("https://www.instagram.com/p/Cx12/"), null);
+  assert.equal(socialHandle("https://www.tiktok.com/"), null);
+  assert.equal(socialHandle(null), null);
+  assert.equal(socialHandle("not a url %%"), null);
+});
+
+test("decision reason: preset, note, or both; the backend still gets a non-empty reason", () => {
+  assert.equal(decisionNote(REJECT_REASONS[0], ""), "ผู้ติดตามไม่ตรงกลุ่ม");
+  assert.equal(decisionNote(INFO_REASONS[1], " ขอยอดวิวย้อนหลัง 30 วัน "), "ขอสถิติผู้ติดตาม — ขอยอดวิวย้อนหลัง 30 วัน");
+  assert.equal(decisionNote("", "ขอโปรไฟล์ล่าสุด"), "ขอโปรไฟล์ล่าสุด");
+  assert.equal(decisionNote(" ", " "), "");
 });

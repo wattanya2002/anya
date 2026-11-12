@@ -33,7 +33,7 @@ async function layoutOk(page) {
     const vw = document.documentElement.clientWidth;
     const scrollers = [document.documentElement, document.body, ...document.querySelectorAll(".pf-root, .kol, .content")];
     const overflow = scrollers.filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => `${el.className || el.tagName}:${el.scrollWidth}>${el.clientWidth}`);
-    const wide = [...document.querySelectorAll(".pf-root *, .kol *")].filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.right > vw + 1 && getComputedStyle(el).position !== "fixed" && !el.closest(".k-table-wrap, .k-subnav, .k-ceo-tabs, .k-chips, .k-social, dialog"); })
+    const wide = [...document.querySelectorAll(".pf-root *, .kol *")].filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.right > vw + 1 && getComputedStyle(el).position !== "fixed" && !el.closest(".k-table-wrap, .k-subnav, .k-chips, .k-social, .k-mc-track, dialog"); })
       .slice(0, 3).map((el) => `${el.tagName}.${String(el.className).slice(0, 30)} right=${Math.round(el.getBoundingClientRect().right)}`);
     const small = [...document.querySelectorAll("input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]), select, textarea")]
       .filter((el) => el.offsetParent !== null && parseFloat(getComputedStyle(el).fontSize) < 16).map((el) => el.id || el.name);
@@ -97,7 +97,7 @@ async function applyPublic(browser, o) {
 
 async function applicantIdFromList(page, creator) {
   await page.goto(`${BASE}/kol?q=${encodeURIComponent(creator)}`);
-  const link = page.locator(".k-item", { hasText: creator }).getByRole("link", { name: /ดูรายละเอียด/ });
+  const link = page.locator("a.k-app", { hasText: creator });
   return (await link.getAttribute("href")).split("/").pop();
 }
 async function sendToCeo(page, id, pitch) {
@@ -140,7 +140,7 @@ async function sendToCeo(page, id, pitch) {
   await check("A2 LINE in-app browser: second applicant + double tap creates only one record", async () => {
     await applyPublic(browser, { ...B, slug, ua: LINE_UA, doubleTap: true });
     await owner.page.goto(`${BASE}/kol?q=${encodeURIComponent(B.creator)}`);
-    assert.equal(await owner.page.locator(".k-item").count(), 1);
+    assert.equal(await owner.page.locator("a.k-app").count(), 1);
   });
   await check("A3 Marketing sees the applicant immediately; data persists after reload (Database)", async () => {
     await applyPublic(browser, { ...C, slug, followers: "900" });
@@ -172,7 +172,7 @@ async function sendToCeo(page, id, pitch) {
     assert.ok(await mkt.page.getByText("คำตอบฟอร์มทั้งหมด").count());
     vA = Number((await mkt.page.getByText(/^ฟอร์ม v\d+$/).first().textContent()).match(/v(\d+)/)[1]); // version applicant A answered
     assert.ok(await mkt.page.locator(`a[href^="https://instagram.com/${A.creator}"]`).count());
-    const img = await mkt.page.locator(".k-av img").first().getAttribute("src");
+    const img = await mkt.page.locator(".k-photo img").first().getAttribute("src");
     const res = await mkt.page.request.get(`${BASE}${img}`);
     assert.equal(res.headers()["content-type"], "image/png");
   });
@@ -206,14 +206,13 @@ async function sendToCeo(page, id, pitch) {
     const ctx = await browser.newContext(IPHONE);
     const p = await ctx.newPage();
     await p.goto(url); // signed out: sign in first, then back to the card
-    await p.waitForURL((u) => u.pathname === "/sign-in" && u.searchParams.get("next") === `/kol/ceo?card=${cardId}`);
+    await p.waitForURL((u) => u.pathname === "/sign-in" && u.searchParams.get("next") === `/kol/ceo/r/${cardId}`);
     await p.fill("#email", process.env.CEO_EMAIL);
     await p.fill("#password", process.env.CEO_PASSWORD);
-    await Promise.all([p.waitForURL((u) => u.pathname === "/kol/ceo" && u.searchParams.get("card") === cardId), p.click("button[type=submit]")]);
-    const card = p.locator(".k-ceo", { hasText: A.creator });
-    await card.getByRole("button", { name: "Approve" }).waitFor(); // that card, opened, with the decision buttons
+    await Promise.all([p.waitForURL((u) => u.pathname === `/kol/ceo/r/${cardId}`), p.click("button[type=submit]")]);
+    await p.locator('.k-mc[data-current="true"]', { hasText: A.creator }).getByRole("link", { name: `อนุมัติ ${A.creator}`, exact: true }).waitFor(); // that card, with the decisions
     await p.goto(url); // already signed in: straight to the card
-    await p.waitForURL((u) => u.pathname === "/kol/ceo" && u.searchParams.get("card") === cardId);
+    await p.waitForURL((u) => u.pathname === `/kol/ceo/r/${cardId}`);
     await ctx.close();
     // a crafted return address to another site is ignored after sign-in
     const x = await browser.newContext();
@@ -228,9 +227,14 @@ async function sendToCeo(page, id, pitch) {
   });
   await check("C4 Marketing sees the CEO queue but has no decision buttons", async () => {
     await mkt.page.goto(`${BASE}/kol/ceo`);
-    const card = mkt.page.locator(".k-ceo", { hasText: A.creator });
-    await card.getByRole("button", { name: /ดูรายละเอียด/ }).click();
-    assert.equal(await card.getByRole("button", { name: "Approve" }).count(), 0);
+    await mkt.page.locator("a.k-app", { hasText: A.creator }).click();
+    const card = mkt.page.locator('.k-mc[data-current="true"]');
+    await card.getByText("ตัดสินใจได้เฉพาะ CEO").waitFor();
+    assert.equal(await card.getByRole("link", { name: `อนุมัติ ${A.creator}`, exact: true }).count(), 0);
+    const id = new URL(mkt.page.url()).pathname.split("/")[4];
+    await mkt.page.goto(`${BASE}/kol/ceo/r/${id}/decide/approve`); // typing the address does not give the decision form
+    await mkt.page.getByText("ตัดสินใจได้เฉพาะ CEO").waitFor();
+    assert.equal(await mkt.page.getByRole("button", { name: /ยืนยันอนุมัติ/ }).count(), 0);
   });
   await check("C5 a role without KOL permission cannot open the module or files", async () => {
     if (!process.env.INVENTORY_EMAIL) return;
@@ -253,58 +257,110 @@ async function sendToCeo(page, id, pitch) {
   // ------------------------------------------------------------ Test D — CEO Approval (iPhone)
   const ceo = await login(browser, process.env.CEO_EMAIL, process.env.CEO_PASSWORD, IPHONE);
   const stale = await login(browser, process.env.CEO_EMAIL, process.env.CEO_PASSWORD);
-  await check("D1 CEO inbox lists pending cards; expand shows Social profile; comment is saved", async () => {
-    await ceo.page.goto(`${BASE}/kol/ceo`);
-    const card = ceo.page.locator(".k-ceo", { hasText: A.creator });
-    await card.getByText(`เสนอ ${A.creator}`).waitFor();
-    await card.getByRole("button", { name: /ดูรายละเอียด/ }).click();
-    await card.getByRole("tab", { name: "Social & ผลงาน" }).click();
-    assert.ok(await card.locator(`a[href^="https://instagram.com/${A.creator}"]`).count());
-    await card.getByRole("tab", { name: /ความคิดเห็น/ }).click();
-    await card.locator("textarea").fill("ดีมาก ขอให้นัดช่วงเย็น");
-    await card.getByRole("button", { name: "ส่ง" }).click();
-    await card.getByText("ดีมาก ขอให้นัดช่วงเย็น").waitFor();
-    layout.push(["ceo inbox iPhone", await layoutOk(ceo.page)]);
+  const cardOf = async (page, creator) => {
+    await page.goto(`${BASE}/kol/ceo`);
+    await page.locator("a.k-app", { hasText: creator }).click();
+    await page.waitForURL(/\/kol\/ceo\/r\/[0-9a-f-]{36}/);
+    return new URL(page.url()).pathname.split("/")[4];
+  };
+  let cardA = "";
+  await check("D1 CEO queue → master card (photo 70% / info) → swipe to the next KOL; Detail Hub, Social & ผลงาน, comment saved", async () => {
+    const p = ceo.page;
+    await p.goto(`${BASE}/kol/ceo`);
+    await p.locator("a.k-app", { hasText: A.creator }).waitFor();
+    cardA = await cardOf(p, A.creator);
+    const cur = p.locator('.k-mc[data-current="true"]');
+    await cur.getByText(A.creator, { exact: true }).waitFor();
+    await cur.getByText(`@${A.creator}`, { exact: true }).waitFor(); // @handle taken from the real Instagram link
+    const pill = p.locator(".k-pill").first();
+    const before = (await pill.textContent()).replace(/\s/g, "");
+    const total = Number(before.split("/")[1]);
+    assert.ok(total >= 3, `three pending cards (got ${before})`);
+    const box = await p.locator(".k-mc-photo").first().boundingBox(), cardBox = await cur.boundingBox();
+    assert.ok(Math.abs(box.height / cardBox.height - 0.7) < 0.02, `photo is 70% of the card (${(box.height / cardBox.height).toFixed(2)})`);
+    layout.push(["ceo master card iPhone", await layoutOk(p)]);
+    // swipe (scroll the card track) → next KOL, counter and address follow; the page itself does not scroll sideways
+    const idx = Number(before.split("/")[0]);
+    const dir = idx < total ? 1 : -1;
+    await p.locator(".k-mc-track").evaluate((el, d) => el.scrollBy({ left: d * (el.clientWidth + 16), behavior: "instant" }), dir);
+    await p.waitForFunction((want) => document.querySelector(".k-pill")?.textContent.replace(/\s/g, "").startsWith(`${want}/`), idx + dir);
+    await p.waitForFunction((a) => !location.pathname.includes(a), cardA);
+    assert.equal(await p.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), true);
+    // detail hub and sections
+    await p.goto(`${BASE}/kol/ceo/r/${cardA}`);
+    await p.locator('.k-mc[data-current="true"]').getByRole("link", { name: new RegExp(`ดูรายละเอียด ${A.creator}`) }).click();
+    await p.waitForURL(/\/hub/);
+    await p.getByRole("link", { name: /Social & ผลงาน/ }).click();
+    await p.waitForURL(/\/social/);
+    assert.ok(await p.locator(`a[href^="https://instagram.com/${A.creator}"]`).count());
+    assert.equal(await p.getByText(/Avg\. Like|Engagement Rate/).count(), 0, "no engagement numbers without real data");
+    await p.goto(`${BASE}/kol/ceo/r/${cardA}/campaign`);
+    await p.getByText("เครดิตจองคอร์ท 10 ชั่วโมง มูลค่า ฿6,000").waitFor();
+    assert.equal(await p.getByText(/ภายใน 1[04] วัน|กำหนดส่ง/).count(), 0, "no invented deadline");
+    await p.goto(`${BASE}/kol/ceo/r/${cardA}/comments`);
+    await p.locator("textarea").fill("ดีมาก ขอให้นัดช่วงเย็น");
+    await p.getByRole("button", { name: "ส่ง" }).click();
+    await p.locator(".k-cmt", { hasText: "ดีมาก ขอให้นัดช่วงเย็น" }).waitFor();
+    await p.getByText("ผู้สมัครมองไม่เห็น").waitFor();
+    layout.push(["ceo comments iPhone", await layoutOk(p)]);
   });
-  await check("D2 Approve updates from the backend result and persists after refresh", async () => {
-    await stale.page.goto(`${BASE}/kol/ceo?tab=all`); // second device opens before the decision
-    const card = ceo.page.locator(".k-ceo", { hasText: A.creator });
-    await card.getByRole("button", { name: "Approve" }).click();
-    await card.getByRole("button", { name: "ยืนยันอนุมัติ" }).click();
-    await ceo.page.getByText(`อนุมัติ ${A.creator} แล้ว`).waitFor();
-    await ceo.page.goto(`${BASE}/kol/ceo?tab=approved`);
-    await ceo.page.locator(".k-ceo", { hasText: A.creator }).getByText("อนุมัติแล้ว").first().waitFor();
+  await check("D2 ✓ opens the approve confirmation; approving updates from the backend and persists after refresh", async () => {
+    await stale.page.goto(`${BASE}/kol/ceo/r/${cardA}/decide/approve`); // second device opens the confirmation before the decision
+    const p = ceo.page;
+    await p.goto(`${BASE}/kol/ceo/r/${cardA}`);
+    await p.locator('.k-mc[data-current="true"]').getByRole("link", { name: `อนุมัติ ${A.creator}`, exact: true }).click();
+    await p.waitForURL(/\/decide\/approve/);
+    await p.getByText(`อนุมัติ ${A.creator} เข้าร่วม`).waitFor(); // confirmation shows the KOL and the campaign; nothing saved yet
+    layout.push(["ceo approve confirm iPhone", await layoutOk(p)]);
+    await p.getByRole("button", { name: /ยืนยันอนุมัติ/ }).click();
+    await p.waitForURL(/\/done/);
+    await p.getByRole("heading", { name: "อนุมัติแล้ว" }).waitFor();
+    await p.getByText("อนุมัติแล้ว · รอกรอก STEP 2").waitFor(); // new status read back from the database
+    await p.reload();
+    await p.getByRole("heading", { name: "อนุมัติแล้ว" }).waitFor();
+    await p.goto(`${BASE}/kol/ceo?tab=approved`);
+    await p.locator("a.k-app", { hasText: A.creator }).getByText("อนุมัติแล้ว").waitFor();
   });
-  await check("D3 no double approval: the stale second device is refused", async () => {
-    const card = stale.page.locator(".k-ceo", { hasText: A.creator });
-    await card.getByRole("button", { name: /ดูรายละเอียด/ }).click();
-    await card.getByRole("button", { name: "Approve" }).click();
-    await card.getByRole("button", { name: "ยืนยันอนุมัติ" }).click();
-    await card.getByText(/ตัดสินใจไปแล้ว/).waitFor();
+  await check("D3 no double approval: the stale second device is refused and nothing is saved twice", async () => {
+    await stale.page.getByRole("button", { name: /ยืนยันอนุมัติ/ }).click();
+    await stale.page.getByText(/ตัดสินใจไปแล้ว/).waitFor();
+    await stale.page.goto(`${BASE}/kol/ceo/r/${cardA}/decide/approve`); // opening it again goes to the saved result
+    await stale.page.waitForURL(/\/done/);
   });
-  await check("D4 Request More Info requires a reason and moves the card", async () => {
-    await ceo.page.goto(`${BASE}/kol/ceo`);
-    const card = ceo.page.locator(".k-ceo", { hasText: B.creator });
-    await card.getByRole("button", { name: /ดูรายละเอียด/ }).click();
-    await card.getByRole("button", { name: "ขอข้อมูลเพิ่ม" }).click();
-    await card.locator("textarea[name=note]").fill("ขอลิงก์คลิปรีวิวสถานที่ 1 ลิงก์");
-    await card.getByRole("button", { name: "ส่งคำขอข้อมูล" }).click();
-    await ceo.page.getByText(`ส่งคำขอข้อมูลเพิ่มของ ${B.creator}`).waitFor();
+  await check("D4 Request More Info: needs a reason, records reason + note, moves the card", async () => {
+    const p = ceo.page;
+    const id = await cardOf(p, B.creator);
+    await p.locator('.k-mc[data-current="true"]').getByRole("link", { name: `ขอข้อมูลเพิ่มจาก ${B.creator}` }).click();
+    await p.waitForURL(/\/decide\/request/);
+    layout.push(["ceo request info iPhone", await layoutOk(p)]);
+    await p.getByRole("button", { name: /ส่งคำขอข้อมูล/ }).click();
+    await p.getByText("เลือกเหตุผล หรือพิมพ์หมายเหตุ").waitFor();
+    await p.locator(".k-opt", { hasText: "ขอรายละเอียดผลงานเพิ่ม" }).click();
+    await p.locator("textarea").fill("ขอลิงก์คลิปรีวิวสถานที่ 1 ลิงก์");
+    await p.getByText("สิ่งที่จะบันทึก: ขอรายละเอียดผลงานเพิ่ม — ขอลิงก์คลิปรีวิวสถานที่ 1 ลิงก์").waitFor();
+    await p.getByRole("button", { name: /ส่งคำขอข้อมูล/ }).click();
+    await p.waitForURL(new RegExp(`/kol/ceo/r/${id}/done`));
+    await p.getByRole("heading", { name: "ส่งคำขอข้อมูลเพิ่มแล้ว" }).waitFor();
   });
-  await check("D5 Reject asks for confirmation (in-app dialog) and records the reason", async () => {
-    const card = ceo.page.locator(".k-ceo", { hasText: C.creator });
-    await card.getByRole("button", { name: /ดูรายละเอียด/ }).click();
-    await card.getByRole("button", { name: "Reject" }).click();
-    await card.locator("textarea[name=note]").fill("ผู้ติดตามต่ำกว่าเกณฑ์");
-    await card.getByRole("button", { name: "ไม่อนุมัติ" }).click();
-    await ceo.page.getByRole("button", { name: "ยืนยันไม่อนุมัติ" }).click();
-    await ceo.page.getByText(`บันทึกไม่อนุมัติ ${C.creator}`).waitFor();
+  await check("D5 X opens the reject confirmation (no change on one tap); confirming records the reason", async () => {
+    const p = ceo.page;
+    const id = await cardOf(p, C.creator);
+    await p.locator('.k-mc[data-current="true"]').getByRole("link", { name: `ไม่อนุมัติ ${C.creator}` }).click();
+    await p.waitForURL(/\/decide\/reject/);
+    await mkt.page.goto(`${BASE}/kol/ceo`); // still pending after the tap
+    await mkt.page.locator("a.k-app", { hasText: C.creator }).waitFor();
+    layout.push(["ceo reject confirm iPhone", await layoutOk(p)]);
+    await p.locator(".k-opt", { hasText: "ผู้ติดตามไม่ตรงกลุ่ม" }).click();
+    await p.getByRole("button", { name: "ยืนยันการไม่อนุมัติ" }).click();
+    await p.waitForURL(new RegExp(`/kol/ceo/r/${id}/done`));
+    await p.getByRole("heading", { name: "ไม่อนุมัติแล้ว" }).waitFor();
+    await p.getByText("ผู้ติดตามไม่ตรงกลุ่ม").waitFor();
   });
   await check("D6 statuses agree on every page (Marketing dashboard + applicant page)", async () => {
     await mkt.page.goto(`${BASE}/kol?bucket=awaiting_step2`);
-    await mkt.page.locator(".k-item", { hasText: A.creator }).first().waitFor();
+    await mkt.page.locator("a.k-app", { hasText: A.creator }).first().waitFor();
     await mkt.page.goto(`${BASE}/kol?bucket=rejected`);
-    await mkt.page.locator(".k-item", { hasText: C.creator }).first().waitFor();
+    await mkt.page.locator("a.k-app", { hasText: C.creator }).first().waitFor();
     await mkt.page.goto(`${BASE}/kol/applicants/${idB}`);
     await mkt.page.getByText("CEO ขอข้อมูลเพิ่ม:").waitFor();
   });
@@ -371,9 +427,9 @@ async function sendToCeo(page, id, pitch) {
     await mkt.page.goto(`${BASE}/kol/campaign`);
     assert.equal(await mkt.page.locator(".k-item", { hasText: A.creator }).count(), 1);
     await mkt.page.goto(`${BASE}/kol?q=${encodeURIComponent(A.creator)}`);
-    assert.equal(await mkt.page.locator(".k-item").count(), 1);
+    assert.equal(await mkt.page.locator("a.k-app").count(), 1);
     await mkt.page.goto(`${BASE}/kol?bucket=registered&q=${encodeURIComponent(A.creator)}`);
-    assert.equal(await mkt.page.locator(".k-item").count(), 1);
+    assert.equal(await mkt.page.locator("a.k-app").count(), 1);
   });
 
   // ------------------------------------------------------------ Campaign tracking
@@ -516,7 +572,7 @@ async function sendToCeo(page, id, pitch) {
       layout.push([`public landing ${w}`, await layoutOk(p)]);
       await ctx.close();
       const m = await login(browser, process.env.MARKETING_EMAIL, process.env.MARKETING_PASSWORD, { ...IPHONE, viewport: { width: w, height: 800 } });
-      for (const path of ["/kol", `/kol/applicants/${idA}`, "/kol/ceo?tab=all", "/kol/campaign", "/kol/forms"]) {
+      for (const path of ["/kol", `/kol/applicants/${idA}`, "/kol/ceo?tab=all", `/kol/ceo/r/${cardA}?tab=all`, `/kol/ceo/r/${cardA}/hub?tab=all`, "/kol/campaign", "/kol/forms"]) {
         await m.page.goto(`${BASE}${path}`);
         layout.push([`${path} ${w}`, await layoutOk(m.page)]);
       }

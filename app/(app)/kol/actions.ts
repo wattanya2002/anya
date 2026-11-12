@@ -366,7 +366,7 @@ export async function sendToCeo(_prev: FormState, fd: FormData): Promise<FormSta
         [u.orgId, id, round, campaignId, pitch, opinion, str(fd, "reason") || null, str(fd, "highlights") || null, str(fd, "cautions") || null, u.id])).rows[0];
       await c.query(`update kol_applicants set campaign_id = $2 where id = $1`, [id, campaignId]);
       await audit(c, u.orgId, u.id, "kol_approval.requested", "kol_approval_request", r.id, null, { applicant: id, round, pitch });
-      await notifyPermission(c, u.orgId, "kol.decide", u.id, "การ์ด KOL รอ CEO พิจารณา", `${applicantRef(t.refNo)} ${t.name} — ${pitch}`, `/kol/ceo?card=${r.id}`, `kol:ceo:${r.id}`);
+      await notifyPermission(c, u.orgId, "kol.decide", u.id, "การ์ด KOL รอ CEO พิจารณา", `${applicantRef(t.refNo)} ${t.name} — ${pitch}`, `/kol/ceo/r/${r.id}`, `kol:ceo:${r.id}`);
     });
   } catch (err) { return handle(err, fields); }
   revalidateKol();

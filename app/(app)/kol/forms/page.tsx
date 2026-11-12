@@ -24,7 +24,7 @@ export default async function FormsDashboard() {
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   return (
     <>
-      <KolHead user={user} active="forms" title="Form Builder" sub="สร้าง แก้ไข เผยแพร่ และดูคำตอบ — ไม่ต้องแก้ Source Code" pending={ceo?.pending} />
+      <KolHead user={user} active="forms" title="Form Builder" sub="สร้าง แก้ไข เผยแพร่ และดูคำตอบ — ไม่ต้องแก้ Source Code" pending={ceo?.pending} back={can(user, "kol.view") ? "/kol" : undefined} />
       {manage && (
         <details className="k-card" style={{ marginTop: 14 }}>
           <summary className="k-btn primary" style={{ listStyle: "none", width: "fit-content" }}><FilePlus2 aria-hidden="true" />สร้างฟอร์มใหม่</summary>

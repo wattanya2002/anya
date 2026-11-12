@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BadgePercent, CalendarDays, ClipboardList, Coins, Info, NotebookPen, Activity } from "lucide-react";
+import { BadgePercent, CalendarDays, ClipboardList, Coins, Info, NotebookPen, Activity } from "lucide-react";
 import { requireUser, can } from "@/lib/auth";
 import { listParticipants, termsById } from "@/lib/kol";
 import { db } from "@/lib/db";
 import { applicantRef, creditSummary, deliverableProgress, suggestPromoCode, DELIVERABLE_LABEL, DELIVERABLE_STATUSES, VISIT_LABEL, VISIT_STATUSES } from "@/lib/kol-core";
 import { bangkokToday, addDays } from "@/lib/dates";
-import { Avatar, SocialChips, SourceNote, fmtDate, fmtDateTime, Note } from "@/components/kol/ui";
+import { KolHead, KolPhoto, SocialChips, SourceNote, fmtDate, fmtDateTime, Note } from "@/components/kol/ui";
 import { ActionForm, CopyButton } from "@/components/kol/client";
 import { addCreditEntry, createPromoCode, updateDeliverable, updateParticipant, updateVisit, voidPromoCode } from "../../actions";
 
@@ -34,12 +34,12 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
 
   return (
     <>
-      <Link href="/kol/campaign" className="k-back"><ArrowLeft aria-hidden="true" />Campaign Management</Link>
-      <section className="k-card" style={{ marginTop: 8 }} aria-labelledby="p-name">
+      <KolHead user={user} title="จัดการ KOL ในแคมเปญ" sub="Post-Approval Tracking · STEP 2 และผลงาน" back="/kol/campaign" />
+      <section className="k-card lg" style={{ marginTop: 14 }} aria-labelledby="p-name">
         <div className="k-row nowrap" style={{ alignItems: "flex-start" }}>
-          <Avatar name={p.creatorName} fileId={p.photoFileId} size="lg" />
+          <KolPhoto name={p.creatorName} fileId={p.photoFileId} size={96} />
           <div className="k-grow">
-            <h1 id="p-name" style={{ margin: 0, fontSize: 21 }}>{p.creatorName}</h1>
+            <h2 id="p-name" className="k-app-name"><b style={{ fontSize: 24 }}>{p.creatorName}</b><span className="k-code">{applicantRef(p.refNo)}</span></h2>
             <p className="k-muted" style={{ margin: "4px 0 0", fontSize: 14 }}>{p.fullName} · {applicantRef(p.refNo)} · อนุมัติ {fmtDate(p.approvedAt)} · เงื่อนไข v{p.termsVersion}</p>
             <div className="k-row" style={{ marginTop: 8 }}>
               <span className="k-tag">LINE {p.lineId ?? "–"}</span><span className="k-tag">โทร {p.phone ?? "–"}</span>

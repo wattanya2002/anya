@@ -6,7 +6,7 @@ import { requireUser, can } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getApplicant, termsById } from "@/lib/kol";
 import { applicantRef, canTransition, ceoCardMessage, DECISION_LABEL, STATUS_LABEL, infoRequestMessage, lineShareUrl, meetsFollowerRule, type ApplicantStatus } from "@/lib/kol-core";
-import { Avatar, SocialChips, StatusBadge, fmtDateTime, fmtDate, Note } from "@/components/kol/ui";
+import { KolHead, KolPhoto, SocialChips, SocialPair, StatusBadge, fmtDateTime, fmtDate, Note } from "@/components/kol/ui";
 import { AnswersView } from "@/components/kol/answers";
 import { ActionForm, ComposeBox, CopyButton, MessageOut, RevealCopy } from "@/components/kol/client";
 import {
@@ -42,28 +42,25 @@ export default async function ApplicantPage({ params }: { params: Promise<{ id: 
 
   return (
     <>
-      <div className="k-row between">
-        <Link href="/kol" className="k-back"><ArrowLeft aria-hidden="true" />รายชื่อผู้สมัคร</Link>
-        {can(user, "kol.decide") && lastRound?.status === "pending" && <Link href={`/kol/ceo?card=${lastRound.id}`} className="k-btn sm soft"><ClipboardCheck aria-hidden="true" />เปิดการ์ด CEO</Link>}
-      </div>
+      <KolHead user={user} title="รายละเอียดผู้สมัคร" sub={`${applicantRef(a.refNo)} · สมัคร ${fmtDateTime(a.createdAt)}`} back="/kol"
+        right={can(user, "kol.decide") && lastRound?.status === "pending" ? <Link href={`/kol/ceo/r/${lastRound.id}`} className="k-btn sm primary"><ClipboardCheck aria-hidden="true" />เปิดการ์ด CEO</Link> : undefined} />
 
-      <section className="k-card" style={{ marginTop: 8 }} aria-labelledby="ap-name">
-        <div className="k-row nowrap" style={{ alignItems: "flex-start" }}>
-          <Avatar name={a.creatorName} fileId={a.photoFileId} size="lg" />
-          <div className="k-grow">
-            <h1 id="ap-name" style={{ margin: 0, fontSize: 21, lineHeight: 1.3 }}>{a.creatorName}</h1>
-            <p className="k-muted" style={{ margin: "4px 0 0", fontSize: 14 }}>{a.fullName} · {applicantRef(a.refNo)} · สมัคร {fmtDateTime(a.createdAt)}</p>
-            <div className="k-row" style={{ marginTop: 10 }}>
-              <StatusBadge status={st} />
-              {a.rejectedStage && <span className="k-tag">ไม่ผ่านขั้น{a.rejectedStage === "ceo" ? " CEO" : "คัดกรอง"}</span>}
-              {minF > 0 && (meetsFollowerRule(a.social, minF)
-                ? <span className="k-badge nodot" data-tone="green">Followers ถึงเกณฑ์ {minF.toLocaleString("en-US")}</span>
-                : <span className="k-badge nodot" data-tone="amber">Followers ต่ำกว่าเกณฑ์ {minF.toLocaleString("en-US")}</span>)}
-            </div>
+      <section className="k-strip" style={{ marginTop: 14, alignItems: "flex-start" }} aria-labelledby="ap-name">
+        <KolPhoto name={a.creatorName} fileId={a.photoFileId} large />
+        <div style={{ minWidth: 0 }}>
+          <h2 id="ap-name" className="k-app-name"><b style={{ fontSize: 26 }}>{a.creatorName}</b><span className="k-code">{applicantRef(a.refNo)}</span></h2>
+          <p className="k-muted" style={{ margin: "4px 0 0", fontSize: 14 }}>{a.fullName}</p>
+          <div className="k-row" style={{ marginTop: 10 }}>
+            <StatusBadge status={st} />
+            {a.rejectedStage && <span className="k-tag">ไม่ผ่านขั้น{a.rejectedStage === "ceo" ? " CEO" : "คัดกรอง"}</span>}
+            {minF > 0 && (meetsFollowerRule(a.social, minF)
+              ? <span className="k-badge nodot" data-tone="green">Followers ถึงเกณฑ์ {minF.toLocaleString("en-US")}</span>
+              : <span className="k-badge nodot" data-tone="amber">Followers ต่ำกว่าเกณฑ์ {minF.toLocaleString("en-US")}</span>)}
           </div>
+          <SocialPair social={a.social} />
         </div>
-        {a.erasedAt && <div style={{ marginTop: 12 }}><Note tone="warn">ข้อมูลส่วนบุคคลถูกลบเมื่อ {fmtDateTime(a.erasedAt)} — เหลือเฉพาะสถิติและประวัติการดำเนินการ</Note></div>}
       </section>
+      {a.erasedAt && <div style={{ marginTop: 12 }}><Note tone="warn">ข้อมูลส่วนบุคคลถูกลบเมื่อ {fmtDateTime(a.erasedAt)} — เหลือเฉพาะสถิติและประวัติการดำเนินการ</Note></div>}
 
       <div className="k-grid two">
         <div className="k-stack">

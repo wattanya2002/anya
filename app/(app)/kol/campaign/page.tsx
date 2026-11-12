@@ -5,7 +5,7 @@ import { requireUser, can } from "@/lib/auth";
 import { ceoCounts, currentTerms, kolReady, listParticipants } from "@/lib/kol";
 import { applicantRef, creditSummary, deliverableProgress, VISIT_LABEL } from "@/lib/kol-core";
 import { db } from "@/lib/db";
-import { Avatar, Empty, KolHead, fmtDate, SourceNote } from "@/components/kol/ui";
+import { Empty, KolHead, KolPhoto, fmtDate, SourceNote } from "@/components/kol/ui";
 
 export default async function CampaignList() {
   const user = await requireUser();
@@ -19,7 +19,7 @@ export default async function CampaignList() {
   const waiting = allDeliv.filter((d) => d.status === "submitted").length;
   return (
     <>
-      <KolHead user={user} active="campaign" title="Campaign Management" sub="KOL ที่ผ่านคัดเลือกและยืนยันข้อมูลแล้ว" pending={ceo.pending} />
+      <KolHead user={user} active="campaign" title="Campaign Management" sub="KOL ที่ผ่านคัดเลือกและยืนยันข้อมูลแล้ว" pending={ceo.pending} back="/kol" />
       <section className="k-card" style={{ marginTop: 14 }} aria-labelledby="c-sum">
         <div className="k-card-h">
           <h2 id="c-sum"><Users aria-hidden="true" />{camp?.name ?? "KOL Campaign"}</h2>
@@ -43,7 +43,7 @@ export default async function CampaignList() {
             const cr = creditSummary(p.credits);
             return (
               <li key={p.id} className="k-item">
-                <Avatar name={p.creatorName} fileId={p.photoFileId} />
+                <KolPhoto name={p.creatorName} fileId={p.photoFileId} size={72} />
                 <div style={{ minWidth: 0 }}>
                   <h3 className="k-ellipsis">{p.creatorName}</h3>
                   <div className="k-item-meta"><span>{applicantRef(p.refNo)}</span><span><CalendarDays aria-hidden="true" style={{ width: 14, height: 14, verticalAlign: -2 }} /> {p.visitDate ? `${fmtDate(p.visitDate)}${p.visitTime ? ` ${p.visitTime}` : ""}` : "ยังไม่นัด"}</span>

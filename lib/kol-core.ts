@@ -177,6 +177,33 @@ export function registrationMessage(o: { name: string; url: string; expiresAt: D
 export function infoRequestMessage(o: { name: string; ref: string; reason: string }): string {
   return [`สวัสดีค่ะ คุณ${o.name}`, `ทีมงาน Wonder Courts ขอข้อมูลเพิ่มเติมสำหรับใบสมัคร ${o.ref}`, o.reason, "ตอบกลับทาง LINE @wondercourts ได้เลยค่ะ"].join("\n");
 }
+/** "@handle" from a profile link (instagram.com/aeng_watt, tiktok.com/@aeng_watt, youtube.com/@x). Null when the link has no handle. */
+export function socialHandle(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(/^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`);
+    const host = u.hostname.toLowerCase().replace(/^(www|m|vt|vm)\./, "");
+    const seg = u.pathname.split("/").filter(Boolean);
+    if (!seg.length) return null;
+    let h = seg[0];
+    if (/youtube\.com$/.test(host) && ["c", "user"].includes(h) && seg[1]) h = seg[1];
+    if (["profile.php", "channel", "watch", "share", "p", "reel", "video", "story", "stories"].includes(h)) return null;
+    h = decodeURIComponent(h).replace(/^@/, "");
+    return /^[\p{L}\p{N}._-]{1,60}$/u.test(h) ? `@${h}` : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Ready-made reasons on the CEO decision screens (Master RCM screens 12–13). A note can be added or used on its own. */
+export const INFO_REASONS = ["ขอรายละเอียดผลงานเพิ่ม", "ขอสถิติผู้ติดตาม", "ขอข้อมูลประสบการณ์กีฬา/เทนนิส"] as const;
+export const REJECT_REASONS = ["ผู้ติดตามไม่ตรงกลุ่ม", "ผลงานยังไม่เหมาะ", "ขอพักไว้ก่อน"] as const;
+/** What is recorded as the decision reason: the chosen reason, the note, or both. */
+export function decisionNote(reason: string, note: string): string {
+  const r = reason.trim(), n = note.trim();
+  return r && n ? `${r} — ${n}` : r || n;
+}
+
 /** A search that is a reference ("KOL-0026", "kol26", "#26", "26") → 26. A name that only contains digits → null. */
 export function refFromQuery(q: string): number | null {
   const m = /^\s*(?:kol[-\s]?|#)?0*(\d{1,9})\s*$/i.exec(q);
