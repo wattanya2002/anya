@@ -1,5 +1,6 @@
 import {
   House, ChartNoAxesColumnIncreasing, Megaphone, Image as ImageIcon, Tag, Users, Package, FileText, Settings, Share2, Box, CalendarDays, ClipboardCheck,
+  BadgeCheck,
 } from "lucide-react";
 import type { NavKey } from "@/lib/nav";
 import { CourtBall } from "./icons";
@@ -20,6 +21,7 @@ export function NavIcon({ k, className }: { k: NavKey; className?: string }) {
     case "settings": return <Settings {...p} />;
     case "social": return <Share2 {...p} />;
     case "mk": return <ClipboardCheck {...p} />;
+    case "kol": return <BadgeCheck {...p} />;
     default: return <Package {...p} />;
   }
 }

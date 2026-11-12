@@ -1,7 +1,7 @@
 /** Navigation map (RCM §3). `built: false` routes render an honest "not yet available" page. */
 export type NavKey =
   | "home" | "calendar" | "dashboard" | "marketing" | "content" | "promotion" | "customers"
-  | "courts" | "inventory" | "reports" | "settings" | "social" | "mk";
+  | "courts" | "inventory" | "reports" | "settings" | "social" | "mk" | "kol";
 
 export type NavItem = { key: NavKey; href: string; label: string; sub: string; phase: string; screens: string };
 
@@ -18,8 +18,9 @@ export const NAV: Record<NavKey, NavItem> = {
   reports:    { key: "reports",    href: "/modules/reports",     label: "Reports",   sub: "รายงาน & วิเคราะห์",  phase: "P0/P1", screens: "S25–S26" },
   settings:   { key: "settings",   href: "/modules/settings",    label: "Settings",  sub: "ตั้งค่า สิทธิ์ & Audit", phase: "P0", screens: "S27–S30" },
   mk:         { key: "mk",         href: "/mk",                  label: "MK",        sub: "คำขออนุมัติการตลาด",   phase: "P0", screens: "CEO Approval (MK)" },
+  kol:        { key: "kol",        href: "/kol",                 label: "KOL",       sub: "รับสมัคร & อนุมัติ KOL", phase: "P0", screens: "KOL Recruitment & Marketing Approval" },
   social:     { key: "social",     href: "/modules/social",      label: "Social KPI", sub: "ผลลัพธ์โซเชียล",     phase: "P0", screens: "S03–S04" },
 };
 
-export const RAIL: NavKey[] = ["home", "calendar", "mk", "dashboard", "marketing", "content", "promotion", "customers", "courts", "inventory", "reports", "settings"];
+export const RAIL: NavKey[] = ["home", "calendar", "mk", "kol", "dashboard", "marketing", "content", "promotion", "customers", "courts", "inventory", "reports", "settings"];
 export const BOTTOM: NavKey[] = ["home", "calendar", "marketing", "inventory"];
