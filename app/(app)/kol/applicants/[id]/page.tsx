@@ -45,7 +45,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ id: 
       <KolHead user={user} title="รายละเอียดผู้สมัคร" sub={`${applicantRef(a.refNo)} · สมัคร ${fmtDateTime(a.createdAt)}`} back="/kol"
         right={can(user, "kol.decide") && lastRound?.status === "pending" ? <Link href={`/kol/ceo/r/${lastRound.id}`} className="k-btn sm primary"><ClipboardCheck aria-hidden="true" />เปิดการ์ด CEO</Link> : undefined} />
 
-      <section className="k-strip" style={{ marginTop: 14, alignItems: "flex-start" }} aria-labelledby="ap-name">
+      <section className="k-strip" style={{ marginTop: 22, alignItems: "flex-start" }} aria-labelledby="ap-name">
         <KolPhoto name={a.creatorName} fileId={a.photoFileId} large />
         <div style={{ minWidth: 0 }}>
           <h2 id="ap-name" className="k-app-name"><b style={{ fontSize: 26 }}>{a.creatorName}</b><span className="k-code">{applicantRef(a.refNo)}</span></h2>
@@ -60,7 +60,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ id: 
           <SocialPair social={a.social} />
         </div>
       </section>
-      {a.erasedAt && <div style={{ marginTop: 12 }}><Note tone="warn">ข้อมูลส่วนบุคคลถูกลบเมื่อ {fmtDateTime(a.erasedAt)} — เหลือเฉพาะสถิติและประวัติการดำเนินการ</Note></div>}
+      {a.erasedAt && <div style={{ marginTop: 18 }}><Note tone="warn">ข้อมูลส่วนบุคคลถูกลบเมื่อ {fmtDateTime(a.erasedAt)} — เหลือเฉพาะสถิติและประวัติการดำเนินการ</Note></div>}
 
       <div className="k-grid two">
         <div className="k-stack">
@@ -82,7 +82,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ id: 
             <div className="k-card-h"><h2 id="h-social"><Star aria-hidden="true" />Social Media & ผลงาน</h2></div>
             <SocialChips social={a.social} />
             {a.sampleLinks.length > 0 && (
-              <ul className="k-files" style={{ marginTop: 12 }}>
+              <ul className="k-files" style={{ marginTop: 18 }}>
                 {a.sampleLinks.map((l) => <li key={l}><a href={l} target="_blank" rel="noopener noreferrer"><ExternalLink aria-hidden="true" /><span className="k-ellipsis">{l}</span></a></li>)}
               </ul>
             )}
@@ -154,11 +154,11 @@ export default async function ApplicantPage({ params }: { params: Promise<{ id: 
               )}
 
               {canTransition("send_to_ceo", st) && (
-                <details style={{ marginTop: 12 }} open={st === "shortlisted" || st === "ceo_info_requested"}>
+                <details style={{ marginTop: 18 }} open={st === "shortlisted" || st === "ceo_info_requested"}>
                   <summary className="k-btn primary block" style={{ listStyle: "none" }}><Send aria-hidden="true" />เสนอ CEO พิจารณา</summary>
                   <ActionForm action={sendToCeo} submitLabel={<><Send aria-hidden="true" />ส่งการ์ดให้ CEO</>} className="k-stack" id="send-ceo">
                     <input type="hidden" name="applicant_id" value={a.id} />
-                    <div style={{ marginTop: 12 }}>
+                    <div style={{ marginTop: 18 }}>
                       <label className="k-field"><span className="k-label">ข้อเสนอสั้น ๆ บนการ์ด *</span>
                         <input className="k-input" name="short_pitch" maxLength={200} required placeholder="เช่น สายฟิตเนส 12K บน IG เหมาะกับคอนเทนต์เทนนิสมือใหม่" /></label>
                       <label className="k-field"><span className="k-label">ความเห็น Marketing *</span><textarea className="k-textarea" name="opinion" maxLength={2000} required /></label>
@@ -173,11 +173,11 @@ export default async function ApplicantPage({ params }: { params: Promise<{ id: 
               )}
 
               {canTransition("request_info", st) && (
-                <details style={{ marginTop: 12 }}>
+                <details style={{ marginTop: 18 }}>
                   <summary className="k-btn amber block" style={{ listStyle: "none" }}><MessageSquareText aria-hidden="true" />ขอข้อมูลเพิ่มจากผู้สมัคร</summary>
                   <ActionForm action={requestInfoFromApplicant} submitLabel="บันทึกคำขอและสร้างข้อความ" submitClass="k-btn amber">
                     <input type="hidden" name="applicant_id" value={a.id} />
-                    <label className="k-field" style={{ marginTop: 12 }}><span className="k-label">ต้องการข้อมูลอะไรเพิ่ม *</span>
+                    <label className="k-field" style={{ marginTop: 18 }}><span className="k-label">ต้องการข้อมูลอะไรเพิ่ม *</span>
                       <textarea className="k-textarea" name="reason" maxLength={2000} required placeholder="เช่น ขอลิงก์คลิปรีวิวสินค้าที่เคยทำ 1–2 ลิงก์" /></label>
                     <p className="k-hint">ระบบยังไม่เชื่อม LINE Messaging API — จะสร้างข้อความให้คัดลอกไปส่งเอง</p>
                   </ActionForm>
@@ -185,12 +185,12 @@ export default async function ApplicantPage({ params }: { params: Promise<{ id: 
               )}
 
               {canTransition("reject_screening", st) && (
-                <details style={{ marginTop: 12 }}>
+                <details style={{ marginTop: 18 }}>
                   <summary className="k-btn danger block" style={{ listStyle: "none" }}><Ban aria-hidden="true" />ไม่ผ่านการคัดกรอง</summary>
                   <ActionForm action={rejectAtScreening} submitLabel="บันทึกไม่ผ่าน" submitClass="k-btn danger" id="reject-screen"
                     confirm={{ title: "ยืนยันไม่ผ่านการคัดกรอง?", body: `${a.creatorName} จะถูกย้ายไปกลุ่ม “ไม่ผ่าน” และส่งเสนอ CEO ไม่ได้อีก`, confirmLabel: "ยืนยันไม่ผ่าน", tone: "danger" }}>
                     <input type="hidden" name="applicant_id" value={a.id} />
-                    <label className="k-field" style={{ marginTop: 12 }}><span className="k-label">เหตุผล (บันทึกภายใน) *</span><textarea className="k-textarea" name="reason" maxLength={2000} required /></label>
+                    <label className="k-field" style={{ marginTop: 18 }}><span className="k-label">เหตุผล (บันทึกภายใน) *</span><textarea className="k-textarea" name="reason" maxLength={2000} required /></label>
                   </ActionForm>
                 </details>
               )}

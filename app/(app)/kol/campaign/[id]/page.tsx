@@ -35,7 +35,7 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
   return (
     <>
       <KolHead user={user} title="จัดการ KOL ในแคมเปญ" sub="Post-Approval Tracking · STEP 2 และผลงาน" back="/kol/campaign" />
-      <section className="k-card lg" style={{ marginTop: 14 }} aria-labelledby="p-name">
+      <section className="k-card lg" style={{ marginTop: 22 }} aria-labelledby="p-name">
         <div className="k-row nowrap" style={{ alignItems: "flex-start" }}>
           <KolPhoto name={p.creatorName} fileId={p.photoFileId} size={96} />
           <div className="k-grow">
@@ -47,7 +47,7 @@ export default async function ParticipantPage({ params }: { params: Promise<{ id
             </div>
           </div>
         </div>
-        <div style={{ marginTop: 12 }}><SocialChips social={p.social} /></div>
+        <div style={{ marginTop: 18 }}><SocialChips social={p.social} /></div>
         <dl className="k-kv" style={{ marginTop: 10 }}>
           <div><dt>Applicant ID</dt><dd>{applicantRef(p.refNo)}</dd></div>
           <div><dt>Campaign</dt><dd>{p.campaignName}</dd></div>

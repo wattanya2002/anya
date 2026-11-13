@@ -199,16 +199,16 @@ export function FormEditor(p: Props) {
       </div>
 
       {published.just && (
-        <div className="k-alert ok" role="status" style={{ marginTop: 12 }}><CheckCircle2 aria-hidden="true" /><span>เผยแพร่เวอร์ชัน {published.versionNo} แล้ว — ผู้ที่เปิดฟอร์มจากนี้ไปจะเห็นเวอร์ชันนี้ คำตอบเก่ายังอ้างอิงเวอร์ชันเดิม</span>
+        <div className="k-alert ok" role="status" style={{ marginTop: 18 }}><CheckCircle2 aria-hidden="true" /><span>เผยแพร่เวอร์ชัน {published.versionNo} แล้ว — ผู้ที่เปิดฟอร์มจากนี้ไปจะเห็นเวอร์ชันนี้ คำตอบเก่ายังอ้างอิงเวอร์ชันเดิม</span>
           {p.publicUrl && p.purpose !== "kol_registration" && <CopyButton text={p.publicUrl} label="Copy Public URL" className="k-btn sm white" />}</div>
       )}
       {!published.just && published.dirty && published.versionNo && (
-        <div className="k-alert warn" style={{ marginTop: 12 }}><AlertCircle aria-hidden="true" /><span>ร่างนี้มีการแก้ไขที่ยังไม่เผยแพร่ (ผู้ตอบยังเห็นเวอร์ชัน {published.versionNo})</span>
+        <div className="k-alert warn" style={{ marginTop: 18 }}><AlertCircle aria-hidden="true" /><span>ร่างนี้มีการแก้ไขที่ยังไม่เผยแพร่ (ผู้ตอบยังเห็นเวอร์ชัน {published.versionNo})</span>
           <button type="button" className="k-btn sm white" onClick={() => ask({ title: "ยกเลิกการแก้ไขที่ยังไม่เผยแพร่?", body: `ร่างจะกลับไปเหมือนเวอร์ชัน ${published.versionNo} ที่เผยแพร่อยู่`, confirmLabel: "ยกเลิกการแก้ไข", danger: true,
             onConfirm: async () => { const r = await discardDraft(p.formId); if (r.error) setError({ text: r.error }); else window.location.reload(); } })}><RotateCcw aria-hidden="true" />ยกเลิกการแก้ไข</button></div>
       )}
       {error && (
-        <div className="k-alert err" role="alert" style={{ marginTop: 12 }}><AlertCircle aria-hidden="true" /><span>{error.text}</span>
+        <div className="k-alert err" role="alert" style={{ marginTop: 18 }}><AlertCircle aria-hidden="true" /><span>{error.text}</span>
           {error.conflict && <button type="button" className="k-btn sm white" onClick={() => window.location.reload()}>โหลดใหม่</button>}</div>
       )}
       {issues.length > 0 && <ul className="fe-issues" aria-label="สิ่งที่ต้องแก้ก่อนเผยแพร่">{issues.map((i, n) => <li key={n}>{i.message}</li>)}</ul>}
@@ -265,7 +265,7 @@ export function FormEditor(p: Props) {
               </div>
             </section>
           ))}
-          <button type="button" className="k-btn white" style={{ marginTop: 14 }} onClick={addSection}><Plus aria-hidden="true" />เพิ่มส่วน (Section)</button>
+          <button type="button" className="k-btn white" style={{ marginTop: 22 }} onClick={addSection}><Plus aria-hidden="true" />เพิ่มส่วน (Section)</button>
         </>
       )}
 
@@ -343,7 +343,7 @@ function FieldCard(x: {
 
           {isChoice(f.type) && <OptionsEditor f={f} update={x.update} />}
 
-          <details style={{ marginTop: 12 }} open={!!f.validation && !isFileType(f.type)}>
+          <details style={{ marginTop: 18 }} open={!!f.validation && !isFileType(f.type)}>
             <summary className="k-label" style={{ cursor: "pointer" }}>Validation</summary>
             <div className="k-form-grid cols2" style={{ marginTop: 8 }}>
               {(f.type === "short_text" || f.type === "long_text") && <>
@@ -383,7 +383,7 @@ function FieldCard(x: {
           <ConditionEditor f={f} prior={x.prior} update={x.update} />
           <MappingEditor f={f} purpose={x.purpose} critical={x.critical} change={x.changeMapping} update={x.update} />
 
-          <div className="k-actions" style={{ marginTop: 14 }}>
+          <div className="k-actions" style={{ marginTop: 22 }}>
             <button type="button" className="k-btn sm" onClick={x.duplicate}><Copy aria-hidden="true" />Duplicate</button>
             {x.sections.length > 1 && (
               <label className="k-row" style={{ gap: 6 }}><span className="k-small k-muted">ย้ายไปส่วน</span>
@@ -402,7 +402,7 @@ function OptionsEditor({ f, update }: { f: Field; update: (p: Partial<Field>) =>
   const opts = f.options ?? [];
   const set = (o: typeof opts) => update({ options: o });
   return (
-    <div style={{ marginTop: 12 }}>
+    <div style={{ marginTop: 18 }}>
       <span className="k-label">ตัวเลือก</span>
       <ul className="fe-opts">
         {opts.map((o, i) => (
@@ -427,7 +427,7 @@ function ConditionEditor({ f, prior, update }: { f: Field; prior: Field[]; updat
   const opsFor = (src?: Field): CondOp[] => !src ? ["not_empty"] : src.type === "multiple_choice" ? ["includes", "not_includes", "not_empty", "empty"]
     : CHOICE_TYPES.includes(src.type) ? ["equals", "not_equals", "not_empty", "empty"] : src.type === "checkbox" || src.type === "consent" ? ["not_empty", "empty"] : ["equals", "not_equals", "not_empty", "empty"];
   return (
-    <details style={{ marginTop: 12 }} open={conds.length > 0}>
+    <details style={{ marginTop: 18 }} open={conds.length > 0}>
       <summary className="k-label" style={{ cursor: "pointer" }}>Conditional Logic — แสดงคำถามนี้เมื่อ…</summary>
       {sources.length === 0 ? <p className="k-hint">ต้องมีคำถามก่อนหน้าจึงจะตั้งเงื่อนไขได้</p> : (
         <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
@@ -473,7 +473,7 @@ function MappingEditor({ f, purpose, critical, change, update }: { f: Field; pur
   const [custom, setCustom] = useState(sm && !presetKeys.includes(sm[1]) ? sm[1] : "");
   const groups = [...new Set(MAPPINGS.filter((m) => m.types.includes(f.type)).map((m) => m.group))];
   return (
-    <details style={{ marginTop: 12 }} open={!!f.mapsTo}>
+    <details style={{ marginTop: 18 }} open={!!f.mapsTo}>
       <summary className="k-label" style={{ cursor: "pointer" }}>Field Mapping — คำถามนี้เชื่อมกับข้อมูลส่วนไหน</summary>
       <div className="k-form-grid cols2" style={{ marginTop: 8 }}>
         <label className="k-field span2"><span className="k-label">ข้อมูลในระบบ</span>
@@ -507,7 +507,7 @@ function SettingsPanel({ schema, edit, formId, publicUrl, purpose }: { schema: F
   const [upload, setUpload] = useState<{ busy?: boolean; error?: string }>({});
   const set = (patch: Partial<typeof s>) => edit((x) => { Object.assign(x.settings, patch); });
   return (
-    <section className="k-card" style={{ marginTop: 14 }} aria-label="ตั้งค่าฟอร์ม">
+    <section className="k-card" style={{ marginTop: 22 }} aria-label="ตั้งค่าฟอร์ม">
       {publicUrl ? (
         <div className="k-row between" style={{ marginBottom: 12 }}><span className="k-small k-ellipsis k-grow">Public URL: {publicUrl}</span><CopyButton text={publicUrl} label="Copy Public URL" /></div>
       ) : purpose === "kol_registration" && <p className="k-hint" style={{ marginTop: 0 }}>ฟอร์ม STEP 2 เปิดได้เฉพาะลิงก์ Token ที่ออกให้ผู้ผ่านอนุมัติแต่ละคน</p>}

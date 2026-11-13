@@ -27,7 +27,7 @@ export default async function CeoQueue({ searchParams }: { searchParams: SP }) {
       <KolHead user={user} active="ceo" title="CEO Approval" back="/kol" pending={counts.pending}
         sub={canDecide ? "พิจารณา KOL ที่สมัครเข้าร่วมแคมเปญ" : "ดูสถานะการพิจารณา (ตัดสินใจได้เฉพาะ CEO)"}
         right={<Pill>{counts[tab].toLocaleString("en-US")} รายการ</Pill>} />
-      <nav className="k-chips" aria-label="กรองการ์ด" style={{ marginTop: 14, flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2 }}>
+      <nav className="k-chips" aria-label="กรองการ์ด" style={{ marginTop: 22, flexWrap: "nowrap", overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2 }}>
         {CEO_TABS.map((t) => (
           <Link key={t.key} href={ceoHref.queue(t.key)} className="k-chip" aria-current={t.key === tab ? "true" : undefined}>
             {t.label}<span className="k-count">{counts[t.key]}</span>
@@ -35,13 +35,13 @@ export default async function CeoQueue({ searchParams }: { searchParams: SP }) {
         ))}
       </nav>
       {cards.length === 0 ? (
-        <div className="k-card" style={{ marginTop: 14 }}>
+        <div className="k-card" style={{ marginTop: 22 }}>
           <Empty icon={<ClipboardCheck aria-hidden="true" />} title={tab === "pending" ? "ไม่มี KOL รอพิจารณา" : "ยังไม่มีรายการในกลุ่มนี้"}
             body={tab === "pending" ? "เมื่อ Marketing เสนอ KOL การ์ดจะขึ้นที่นี่ทันที" : undefined} />
           <div style={{ display: "flex", justifyContent: "center" }}><Link href="/kol" className="k-btn pinksoft">กลับหน้ารายการผู้สมัคร</Link></div>
         </div>
       ) : (
-        <ul className="k-cards" style={{ marginTop: 14 }}>
+        <ul className="k-cards" style={{ marginTop: 22 }}>
           {cards.map((c) => {
             const a = c.applicant;
             return (
@@ -54,7 +54,7 @@ export default async function CeoQueue({ searchParams }: { searchParams: SP }) {
                       {tab !== "pending" && <span className="k-badge" data-tone={TONE[c.requestStatus] ?? "navy"}>{DECISION_LABEL[c.requestStatus]}</span>}
                     </div>
                     <div className="k-row nowrap" style={{ gap: 6, alignItems: "center" }}>
-                      <div className="k-grow"><SocialPair social={a.social} /></div>
+                      <div className="k-grow"><SocialPair social={a.social} handle={false} /></div>
                       <ChevronRight className="k-chev" aria-hidden="true" style={{ marginTop: 10 }} />
                     </div>
                     <div className="k-camp"><Megaphone aria-hidden="true" /><span>{c.campaignName}</span></div>

@@ -20,7 +20,7 @@ export default async function CampaignList() {
   return (
     <>
       <KolHead user={user} active="campaign" title="Campaign Management" sub="KOL ที่ผ่านคัดเลือกและยืนยันข้อมูลแล้ว" pending={ceo.pending} back="/kol" />
-      <section className="k-card" style={{ marginTop: 14 }} aria-labelledby="c-sum">
+      <section className="k-card" style={{ marginTop: 22 }} aria-labelledby="c-sum">
         <div className="k-card-h">
           <h2 id="c-sum"><Users aria-hidden="true" />{camp?.name ?? "KOL Campaign"}</h2>
           {terms && can(user, "kol.review") && <Link href="/kol/campaign/terms" className="k-btn sm soft"><Settings2 aria-hidden="true" />เงื่อนไข v{terms.versionNo}</Link>}
@@ -35,7 +35,7 @@ export default async function CampaignList() {
       </section>
 
       {rows.length === 0 ? (
-        <div className="k-card" style={{ marginTop: 14 }}><Empty title="ยังไม่มี KOL ในแคมเปญ" body="KOL จะเข้ามาที่นี่อัตโนมัติเมื่อ CEO อนุมัติและ KOL กรอก STEP 2 เรียบร้อย" /></div>
+        <div className="k-card" style={{ marginTop: 22 }}><Empty title="ยังไม่มี KOL ในแคมเปญ" body="KOL จะเข้ามาที่นี่อัตโนมัติเมื่อ CEO อนุมัติและ KOL กรอก STEP 2 เรียบร้อย" /></div>
       ) : (
         <ul className="k-list">
           {rows.map((p) => {

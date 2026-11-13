@@ -26,7 +26,7 @@ export default async function TermsPage() {
         <ActionForm action={saveCampaignTerms} submitLabel="บันทึกเป็นเวอร์ชันใหม่" id="terms"
           confirm={{ title: "บันทึกเงื่อนไขเวอร์ชันใหม่?", body: "ผู้สมัครรายใหม่จะเห็นและยืนยันเงื่อนไขชุดนี้ ผู้ที่ยืนยันไปแล้วไม่ได้รับผลกระทบ", confirmLabel: "บันทึก" }}>
           <input type="hidden" name="campaign_id" value={camp.id} />
-          <div className="k-form-grid cols2" style={{ marginTop: 12 }}>
+          <div className="k-form-grid cols2" style={{ marginTop: 18 }}>
             <label className="k-field span2"><span className="k-label">ชื่อแคมเปญ / เงื่อนไข</span><input className="k-input" name="title" defaultValue={t.title} maxLength={160} /></label>
             <label className="k-field span2"><span className="k-label">เงื่อนไขที่แสดงในฟอร์ม (1 บรรทัดต่อ 1 ข้อ)</span><textarea className="k-textarea" name="items" rows={10} defaultValue={t.items.join("\n")} /></label>
             <label className="k-field span2"><span className="k-label">ผลงานที่ต้องส่ง / Deliverables (1 บรรทัดต่อ 1 รายการ)</span><textarea className="k-textarea" name="deliverables" rows={5} defaultValue={t.deliverables.map((d) => d.label).join("\n")} /></label>

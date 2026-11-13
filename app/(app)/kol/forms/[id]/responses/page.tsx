@@ -37,7 +37,7 @@ export default async function ResponsesPage({ params, searchParams }: { params: 
           <a className="k-btn sm primary" href={`/kol/forms/${form.id}/export?${new URLSearchParams({ ...Object.fromEntries(exportQs), format: "xlsx" })}`}><FileSpreadsheet aria-hidden="true" />Export Excel</a>
         </div>
       </div>
-      <form className="k-card k-filters" role="search" style={{ marginTop: 14 }}>
+      <form className="k-card k-filters" role="search" style={{ marginTop: 22 }}>
         <label className="k-field"><span>ค้นหาในคำตอบ</span><input className="k-input" type="search" name="q" defaultValue={q} placeholder="คำใดก็ได้ หรือเลขอ้างอิง" maxLength={80} /></label>
         <label className="k-field"><span>เวอร์ชันฟอร์ม</span>
           <select className="k-select" name="version" defaultValue={version ?? ""}><option value="">ทุกเวอร์ชัน</option>{versions.rows.map((v) => <option key={v.version_no} value={v.version_no}>v{v.version_no}</option>)}</select></label>
@@ -46,8 +46,8 @@ export default async function ResponsesPage({ params, searchParams }: { params: 
         <span />
         <div className="k-actions"><button type="submit" className="k-btn primary"><Search aria-hidden="true" />กรอง</button></div>
       </form>
-      {rows.length === 0 ? <div className="k-card" style={{ marginTop: 14 }}><Empty title={form.responses ? "ไม่พบคำตอบตามเงื่อนไข" : "ยังไม่มีคำตอบ"} /></div> : (
-        <div className="k-card" style={{ marginTop: 14, padding: 0 }}>
+      {rows.length === 0 ? <div className="k-card" style={{ marginTop: 22 }}><Empty title={form.responses ? "ไม่พบคำตอบตามเงื่อนไข" : "ยังไม่มีคำตอบ"} /></div> : (
+        <div className="k-card" style={{ marginTop: 22, padding: 0 }}>
           <div className="k-table-wrap" style={{ border: 0 }}>
             <table className="k-table">
               <thead><tr><th>เลขอ้างอิง</th><th>ส่งเมื่อ</th>{summary.map((c) => <th key={c.key}>{c.label}</th>)}<th>เวอร์ชัน</th><th>สถานะ</th><th><span className="sr-only">เปิด</span></th></tr></thead>

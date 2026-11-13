@@ -21,8 +21,8 @@ export default async function CeoHub(p: CeoParams) {
     <>
       <KolHead user={user} title="รายละเอียด KOL" sub="ข้อมูลประกอบการพิจารณา" back={ceoHref.card(c.requestId, tab)}
         right={<Pill label={`รายการที่ ${ctx.index + 1} จาก ${ctx.total}`}><b>{ctx.index + 1}</b> / {ctx.total}</Pill>} />
-      <div style={{ marginTop: 14 }}><CeoStrip name={a.creatorName} refNo={a.refNo} photoFileId={a.photoFileId} social={a.social} pink /></div>
-      <ul className="k-hub-menu" style={{ marginTop: 14 }}>
+      <div style={{ marginTop: 22 }}><CeoStrip name={a.creatorName} refNo={a.refNo} photoFileId={a.photoFileId} social={a.social} pink /></div>
+      <ul className="k-hub-menu" style={{ marginTop: 22 }}>
         {items.map((it) => (
           <li key={it.key}>
             <Link href={ceoHref.section(c.requestId, it.key, tab)}>
@@ -34,7 +34,7 @@ export default async function CeoHub(p: CeoParams) {
       <div style={{ marginTop: 10, display: "flex", justifyContent: "center" }}>
         <Link href={`/kol/applicants/${a.id}`} className="k-btn sm ghost"><ExternalLink aria-hidden="true" />เปิดใบสมัครเต็ม</Link>
       </div>
-      <div style={{ marginTop: 14 }}><DecisionArea id={c.requestId} tab={tab} name={a.creatorName} pending={pending} canDecide={canDecide} decided={decidedOf(c)} /></div>
+      <div style={{ marginTop: 22 }}><DecisionArea id={c.requestId} tab={tab} name={a.creatorName} pending={pending} canDecide={canDecide} decided={decidedOf(c)} /></div>
     </>
   );
 }

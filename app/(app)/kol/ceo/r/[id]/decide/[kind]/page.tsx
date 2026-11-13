@@ -19,11 +19,11 @@ export default async function CeoDecide(p: CeoParams & { params: Promise<{ id: s
     <>
       <KolHead user={user} title="CEO Approval" sub="พิจารณา KOL ที่สมัครเข้าร่วมแคมเปญ" back={ceoHref.card(c.requestId, tab)}
         right={<Pill label={`รายการที่ ${ctx.index + 1} จาก ${ctx.total}`}><b>{ctx.index + 1}</b> / {ctx.total}</Pill>} />
-      <div style={{ marginTop: 14 }}><CeoStrip name={a.creatorName} refNo={a.refNo} photoFileId={a.photoFileId} social={a.social} /></div>
-      <div style={{ marginTop: 14 }}>
+      <div style={{ marginTop: 22 }}><CeoStrip name={a.creatorName} refNo={a.refNo} photoFileId={a.photoFileId} social={a.social} /></div>
+      <div style={{ marginTop: 22 }}>
         {canDecide
           ? <DecideForm kind={k} requestId={c.requestId} name={a.creatorName} campaign={c.campaignName} backHref={ceoHref.card(c.requestId, tab)} doneHref={ceoHref.done(c.requestId, tab)} />
-          : <div className="k-card"><Note tone="warn">ตัดสินใจได้เฉพาะ CEO — บัญชีนี้ดูการ์ดได้อย่างเดียว</Note><Link href={ceoHref.card(c.requestId, tab)} className="k-btn pinksoft" style={{ marginTop: 12 }}>กลับไปที่การ์ด</Link></div>}
+          : <div className="k-card"><Note tone="warn">ตัดสินใจได้เฉพาะ CEO — บัญชีนี้ดูการ์ดได้อย่างเดียว</Note><Link href={ceoHref.card(c.requestId, tab)} className="k-btn pinksoft" style={{ marginTop: 18 }}>กลับไปที่การ์ด</Link></div>}
       </div>
     </>
   );

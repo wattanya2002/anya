@@ -26,16 +26,16 @@ export default async function FormsDashboard() {
     <>
       <KolHead user={user} active="forms" title="Form Builder" sub="สร้าง แก้ไข เผยแพร่ และดูคำตอบ — ไม่ต้องแก้ Source Code" pending={ceo?.pending} back={can(user, "kol.view") ? "/kol" : undefined} />
       {manage && (
-        <details className="k-card" style={{ marginTop: 14 }}>
+        <details className="k-card" style={{ marginTop: 22 }}>
           <summary className="k-btn primary" style={{ listStyle: "none", width: "fit-content" }}><FilePlus2 aria-hidden="true" />สร้างฟอร์มใหม่</summary>
           <ActionForm action={createForm} submitLabel="สร้างและเริ่มแก้ไข">
-            <label className="k-field" style={{ marginTop: 12 }}><span className="k-label">ชื่อฟอร์ม</span>
+            <label className="k-field" style={{ marginTop: 18 }}><span className="k-label">ชื่อฟอร์ม</span>
               <input className="k-input" name="title" maxLength={160} required placeholder="เช่น แบบประเมินหลังร่วมแคมเปญ" /></label>
             <p className="k-hint">ฟอร์มใหม่เป็นฟอร์มทั่วไป (เก็บคำตอบ ดู และส่งออกได้) ส่วนฟอร์มใบสมัคร KOL และ STEP 2 ผูกกับ Workflow อยู่แล้ว</p>
           </ActionForm>
         </details>
       )}
-      {forms.length === 0 ? <div className="k-card" style={{ marginTop: 14 }}><Empty title="ยังไม่มีฟอร์ม" /></div> : (
+      {forms.length === 0 ? <div className="k-card" style={{ marginTop: 22 }}><Empty title="ยังไม่มีฟอร์ม" /></div> : (
         <ul className="k-forms">
           {forms.map((f) => {
             const st = STATUS[f.status];

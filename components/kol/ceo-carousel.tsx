@@ -9,15 +9,17 @@ import { ceoHref, DecidedLine, DecisionLinks, type DecidedInfo } from "./ceo-ui"
 
 export type Slide = { id: string; name: string; refNo: number; photo: string | null; social: SocialLite[]; campaign: string; pending: boolean; decided: DecidedInfo };
 
-/** CEO master card (Master RCM §5): photo 70% fading into white, info 30%, three round decisions. Swipe or use the arrows for the next KOL. */
+/** CEO master card (Master RCM §5, card proportions per the owner's Nov 2026 reference): framed photo, name / social / campaign,
+ * three round decisions. Swipe or use the arrows for the next KOL; on phones the next card peeks in. */
 export function CeoCarousel({ slides, index, tab, canDecide, sub }: { slides: Slide[]; index: number; tab: CeoTab; canDecide: boolean; sub: string }) {
   const track = useRef<HTMLDivElement>(null);
   const [cur, setCur] = useState(index);
   const total = slides.length;
 
   const go = useCallback((i: number, smooth = true) => {
-    const t = track.current, el = t?.children[i] as HTMLElement | undefined;
-    if (t && el) t.scrollTo({ left: el.offsetLeft, behavior: smooth ? "smooth" : "auto" });
+    const t = track.current, el = t?.children[i] as HTMLElement | undefined, first = t?.children[0] as HTMLElement | undefined;
+    // measured from the first card, so the track's side padding (phones) is not counted twice
+    if (t && el && first) t.scrollTo({ left: el.offsetLeft - first.offsetLeft, behavior: smooth ? "smooth" : "auto" });
   }, []);
 
   useEffect(() => { go(index, false); }, [go, index]);
@@ -31,7 +33,8 @@ export function CeoCarousel({ slides, index, tab, canDecide, sub }: { slides: Sl
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         const w = (t.children[0] as HTMLElement | undefined)?.offsetWidth ?? t.clientWidth;
-        const i = Math.min(total - 1, Math.max(0, Math.round(t.scrollLeft / (w + 16))));
+        const gap = parseFloat(getComputedStyle(t).columnGap) || 0;
+        const i = Math.min(total - 1, Math.max(0, Math.round(t.scrollLeft / (w + gap))));
         setCur((prev) => {
           if (prev !== i) window.history.replaceState(window.history.state, "", ceoHref.card(slides[i].id, tab));
           return i;

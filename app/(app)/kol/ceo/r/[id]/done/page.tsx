@@ -27,8 +27,8 @@ export default async function CeoDone(p: CeoParams) {
   return (
     <>
       <KolHead user={user} title="CEO Approval" sub="ผลการพิจารณา" back={ceoHref.queue("pending")} />
-      <div style={{ marginTop: 14 }}><CeoStrip name={a.creatorName} refNo={a.refNo} photoFileId={a.photoFileId} social={a.social} /></div>
-      <section className="k-dc k-done" style={{ marginTop: 14 }} aria-labelledby="done-h" role="status">
+      <div style={{ marginTop: 22 }}><CeoStrip name={a.creatorName} refNo={a.refNo} photoFileId={a.photoFileId} social={a.social} /></div>
+      <section className="k-dc k-done" style={{ marginTop: 22 }} aria-labelledby="done-h" role="status">
         <div className={`k-dc-ic ${d.decision === "approved" ? "ok" : d.decision === "rejected" ? "x" : "ask"}`} aria-hidden="true">
           {d.decision === "approved" ? <Check /> : d.decision === "rejected" ? <X /> : <MessageSquareMore />}
         </div>
@@ -45,7 +45,7 @@ export default async function CeoDone(p: CeoParams) {
               : <Note>ระบบสร้างลิงก์ STEP 2 แล้ว — Marketing คัดลอกไปส่งให้ KOL ทาง LINE จากหน้าผู้สมัคร (ระบบไม่ได้ส่ง LINE เอง)</Note>}
           </div>
         )}
-        {d.decision === "info_requested" && <div style={{ marginTop: 14, textAlign: "left" }}><Note tone="warn">Marketing จะเห็นคำขอนี้ในหน้าผู้สมัคร และเสนอการ์ดใหม่เมื่อได้ข้อมูลครบ</Note></div>}
+        {d.decision === "info_requested" && <div style={{ marginTop: 22, textAlign: "left" }}><Note tone="warn">Marketing จะเห็นคำขอนี้ในหน้าผู้สมัคร และเสนอการ์ดใหม่เมื่อได้ข้อมูลครบ</Note></div>}
 
         <div className="k-dc-acts">
           <Link href={ceoHref.queue("pending")} className="k-btn cancel outline">กลับคิว</Link>

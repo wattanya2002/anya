@@ -41,9 +41,9 @@ export default async function KolOverview({ searchParams }: { searchParams: SP }
   return (
     <>
       <KolHead user={user} active="overview" title="KOL Recruitment" sub="รับสมัคร คัดกรอง และเสนอ CEO" pending={ceo.pending} back="/" />
-      {one(sp.erased) && <div style={{ marginTop: 12 }}><Note tone="ok">ลบข้อมูลส่วนบุคคลของผู้สมัครแล้ว</Note></div>}
+      {one(sp.erased) && <div style={{ marginTop: 18 }}><Note tone="ok">ลบข้อมูลส่วนบุคคลของผู้สมัครแล้ว</Note></div>}
 
-      <nav className="k-stat2" aria-label="สรุปผู้สมัคร (คำนวณจากข้อมูลจริง)" style={{ marginTop: 14 }}>
+      <nav className="k-stat2" aria-label="สรุปผู้สมัคร (คำนวณจากข้อมูลจริง)" style={{ marginTop: 22 }}>
         <Link href={qs("all")} aria-current={bucket === "all" && !filtered ? "true" : undefined}>
           <i aria-hidden="true"><Users /></i><span>ผู้สมัครทั้งหมด<b>{counts.all.toLocaleString("en-US")}</b></span>
         </Link>
@@ -53,7 +53,7 @@ export default async function KolOverview({ searchParams }: { searchParams: SP }
       </nav>
 
       {publicUrl && reviewer && (
-        <section className="k-card" style={{ marginTop: 12 }} aria-labelledby="share-h">
+        <section className="k-card" style={{ marginTop: 18 }} aria-labelledby="share-h">
           <div className="k-row between" style={{ alignItems: "flex-start" }}>
             <div className="k-grow">
               <h2 id="share-h" style={{ margin: 0, fontSize: 16, display: "flex", alignItems: "center", gap: 8 }}><Link2 aria-hidden="true" style={{ width: 19, height: 19 }} />ลิงก์ฟอร์มสมัคร KOL</h2>
@@ -61,7 +61,7 @@ export default async function KolOverview({ searchParams }: { searchParams: SP }
             </div>
             <span className="k-badge" data-tone={form!.status === "published" ? "green" : "gray"}>{form!.status === "published" ? `เปิดรับสมัคร · v${form!.versionNo}` : "ปิดรับสมัคร"}</span>
           </div>
-          <div className="k-actions" style={{ marginTop: 12 }}>
+          <div className="k-actions" style={{ marginTop: 18 }}>
             <CopyButton text={publicUrl} label="คัดลอกลิงก์" />
             <a className="k-btn sm" href={publicUrl} target="_blank" rel="noopener noreferrer"><ExternalLink aria-hidden="true" />เปิดฟอร์ม</a>
             {(can(user, "forms.manage") || can(user, "forms.responses")) && <Link className="k-ibtn" style={{ width: 44, height: 44 }} href="/kol/forms" aria-label="จัดการฟอร์ม (Form Builder)" title="จัดการฟอร์ม (Form Builder)"><FileText aria-hidden="true" /></Link>}
@@ -69,7 +69,7 @@ export default async function KolOverview({ searchParams }: { searchParams: SP }
         </section>
       )}
 
-      <details className="k-fp" style={{ marginTop: 12 }} open={activeFilters > 0 && rows.length === 0}>
+      <details className="k-fp" style={{ marginTop: 18 }} open={activeFilters > 0 && rows.length === 0}>
         <summary><Search aria-hidden="true" />ค้นหา &amp; กรอง{activeFilters > 0 && <span className="k-fp-n">ใช้ตัวกรอง {activeFilters} รายการ</span>}<ChevronDown className="chev" aria-hidden="true" style={activeFilters > 0 ? { marginLeft: 8 } : { marginLeft: "auto" }} /></summary>
         <form className="k-fp-body" role="search" action="/kol">
           <div>

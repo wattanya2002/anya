@@ -74,7 +74,7 @@ export function DecideForm({ kind, requestId, name, campaign, backHref, doneHref
       )}
       {kind === "reject" && <p className="k-dc-note">ผู้สมัครจะอยู่ในกลุ่ม “ไม่ผ่าน” และส่งพิจารณาใหม่ไม่ได้</p>}
 
-      {(local || (state.error && !pending)) && <p className="k-alert err" role="alert" style={{ marginTop: 14 }}><AlertCircle aria-hidden="true" />{local || state.error}</p>}
+      {(local || (state.error && !pending)) && <p className="k-alert err" role="alert" style={{ marginTop: 22 }}><AlertCircle aria-hidden="true" />{local || state.error}</p>}
 
       <div className="k-dc-acts">
         <Link href={backHref} className={`k-btn cancel${kind === "request" ? "" : " outline"}`} aria-disabled={pending || undefined}>ยกเลิก</Link>

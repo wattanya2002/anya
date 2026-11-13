@@ -34,9 +34,9 @@ export default async function CeoSection(p: CeoParams & { params: Promise<{ id: 
     <>
       <KolHead user={user} title={meta.title} sub={meta.sub} back={ceoHref.hub(c.requestId, tab)}
         right={<Pill label={`รายการที่ ${ctx.index + 1} จาก ${ctx.total}`}><b>{ctx.index + 1}</b> / {ctx.total}</Pill>} />
-      <div style={{ marginTop: 14 }}><CeoStrip name={a.creatorName} refNo={a.refNo} photoFileId={a.photoFileId} social={a.social} pink={section === "campaign"} /></div>
+      <div style={{ marginTop: 22 }}><CeoStrip name={a.creatorName} refNo={a.refNo} photoFileId={a.photoFileId} social={a.social} pink={section === "campaign"} /></div>
 
-      <div style={{ marginTop: 14 }}>
+      <div style={{ marginTop: 22 }}>
         {section === "info" && (
           <section className="k-sec" aria-labelledby="s-h">
             <h2 id="s-h"><UserRound aria-hidden="true" />ข้อมูลส่วนตัว</h2>
@@ -103,7 +103,7 @@ export default async function CeoSection(p: CeoParams & { params: Promise<{ id: 
               {c.reason && <><h3>เหตุผลที่เสนอ</h3><p>{c.reason}</p></>}
               {c.highlights && <><h3>จุดเด่นของ KOL</h3><p>{c.highlights}</p></>}
               {c.cautions && <><h3>สิ่งที่ควรระวัง</h3><p>{c.cautions}</p></>}
-              <p className="k-muted k-small" style={{ marginTop: 14 }}>เสนอโดย {c.submittedByName} · {when(c.submittedAt)} · รอบที่ {c.roundNo}</p>
+              <p className="k-muted k-small" style={{ marginTop: 22 }}>เสนอโดย {c.submittedByName} · {when(c.submittedAt)} · รอบที่ {c.roundNo}</p>
             </section>
             {c.rounds.length > 1 && (
               <section className="k-sec" aria-labelledby="s-rounds">
@@ -194,7 +194,7 @@ export default async function CeoSection(p: CeoParams & { params: Promise<{ id: 
         )}
       </div>
 
-      <div style={{ marginTop: 14 }}><DecisionArea id={c.requestId} tab={tab} name={a.creatorName} pending={pending} canDecide={canDecide} decided={decidedOf(c)} /></div>
+      <div style={{ marginTop: 22 }}><DecisionArea id={c.requestId} tab={tab} name={a.creatorName} pending={pending} canDecide={canDecide} decided={decidedOf(c)} /></div>
     </>
   );
 }
