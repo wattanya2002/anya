@@ -9,8 +9,8 @@ import { ceoHref, DecidedLine, DecisionLinks, type DecidedInfo } from "./ceo-ui"
 
 export type Slide = { id: string; name: string; refNo: number; photo: string | null; social: SocialLite[]; campaign: string; pending: boolean; decided: DecidedInfo };
 
-/** CEO master card (Master RCM §5, card proportions per the owner's Nov 2026 reference): framed photo, name / social / campaign,
- * three round decisions. Swipe or use the arrows for the next KOL; on phones the next card peeks in. */
+/** CEO master card (Master RCM §5): photo 70% fading into white, info 30%, three round decisions — sized per the owner's
+ * Nov 2026 reference (about 300 × 450 px). Swipe or use the arrows for the next KOL; on phones the next card peeks in. */
 export function CeoCarousel({ slides, index, tab, canDecide, sub }: { slides: Slide[]; index: number; tab: CeoTab; canDecide: boolean; sub: string }) {
   const track = useRef<HTMLDivElement>(null);
   const [cur, setCur] = useState(index);

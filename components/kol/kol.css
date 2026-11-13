@@ -18,7 +18,8 @@
   /* spacing & card scale follow the owner's reference (Apple Store "สำหรับคุณ", Nov 2026):
    * content 20 px from the phone edge, roomy cards, more air between sections */
   --k-r: 22px; --k-r-lg: 26px; --k-r-in: 14px;
-  min-width: 0; margin-top: 16px; color: var(--k-ink); scroll-padding-bottom: 96px; line-height: 1.45;
+  min-width: 0; margin-top: 16px;
+  position: relative; /* keeps absolutely placed hidden controls inside the KOL scroll area — the phone page itself must never scroll */ color: var(--k-ink); scroll-padding-bottom: 96px; line-height: 1.45;
   /* RCM §3: SF Pro for English where available, Thai system font (loopless, like the master) for Thai */
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Noto Sans Thai", "Sukhumvit Set", "Leelawadee UI", Thonburi, system-ui, sans-serif;
 }
@@ -386,39 +387,40 @@ a.k-soc:hover { background: var(--k-sky); }
 .k-camp span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 @media (max-width: 400px) { .k-photo { --s: 64px; } .k-app-name b { font-size: 17px; } .k-app { gap: 12px; padding: 14px; } }
 
-/* ---------------- 05 CEO master card
- * Card proportions and spacing follow the owner's reference (Apple Store "สำหรับคุณ" card, Nov 2026):
- * the whole photo sits framed in a white top area, name / social / campaign on a soft panel below,
- * the three round decisions at the foot. Phones: content 20 px from the edge and the next card peeks in. */
-.k-mc-wrap { display: grid; gap: 18px; min-width: 0; }
-.k-mc-stage { position: relative; min-width: 0; max-width: 340px; width: 100%; margin: 0 auto; }
+/* ---------------- 05 CEO master card (photo 70% · info 30% · three round decisions)
+ * Same look as the approved master card. Only the size follows the owner's Nov 2026 reference (Apple Store
+ * "สำหรับคุณ" card): about 300 × 450 px (2 : 3), on phones 20 px from the edge with the next KOL peeking in.
+ * Inner sizes are the master's × 0.8 to suit the smaller card. */
+.k-mc-wrap { display: grid; gap: 14px; min-width: 0; }
+.k-mc-stage { position: relative; min-width: 0; max-width: 300px; width: 100%; margin: 0 auto; }
 .k-mc-track { display: flex; gap: 14px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-  padding: 2px 0 10px; }
+  border-radius: var(--k-r-lg); padding: 2px 0 12px; }
 .k-mc-track::-webkit-scrollbar { display: none; }
-.k-mc { position: relative; flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always; display: flex; flex-direction: column;
-  border-radius: var(--k-r-lg); background: #f6f4fa; box-shadow: var(--k-card); overflow: hidden; }
-.k-mc-main { display: flex; flex-direction: column; flex: 1 1 auto; color: inherit; }
-.k-mc-photo { display: grid; place-items: center; padding: 30px 0 28px; background: #fff; }
-.k-mc-photo img, .k-mc-photo > span { width: 62%; aspect-ratio: 1; border-radius: 16px; box-shadow: 0 12px 26px rgba(16, 27, 58, .16), 0 2px 6px rgba(16, 27, 58, .06); }
-.k-mc-photo img { height: auto; object-fit: cover; object-position: center 25%; }
-.k-mc-photo > span { display: grid; place-items: center; background: linear-gradient(160deg, #fdeef4, #f1eafb); color: #ef7aa6; font-size: 56px; font-weight: 700; }
-.k-mc-info { flex: 1 1 auto; padding: 20px 22px 0; }
-.k-mc-name { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; }
-.k-mc-name b { font-size: 24px; line-height: 1.2; font-weight: 800; letter-spacing: -.01em; overflow-wrap: anywhere; min-width: 0; }
-.k-mc-name .k-code { min-height: 24px; padding: 0 10px; font-size: 12.5px; background: #fff; }
-.k-mc-info .k-pair { margin-top: 14px; }
-.k-mc-info .k-net-ic { width: 28px; height: 28px; background-color: #fff; }
-.k-mc-info .k-net-ic svg { width: 16px; height: 16px; }
-.k-mc-info .k-net span { font-size: 13.5px; }
-.k-mc-info .k-camp { margin-top: 12px; font-size: 13.5px; color: var(--k-ink-2); }
-.k-mc-acts { display: flex; justify-content: center; padding: 18px 22px 22px; }
-.k-mc-done { margin: 18px 22px 22px; padding: 10px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.4; text-align: center; }
+.k-mc { position: relative; flex: 0 0 100%; align-self: flex-start; scroll-snap-align: start; scroll-snap-stop: always; aspect-ratio: 2 / 3;
+  border-radius: var(--k-r-lg); background: #fff; box-shadow: var(--k-card); overflow: hidden; border: 1px solid rgba(255, 255, 255, .9); }
+.k-mc-main { position: absolute; inset: 0; display: block; color: inherit; }
+.k-mc-photo { position: absolute; left: 0; right: 0; top: 0; height: 70%; background: linear-gradient(170deg, #fde4ee 0%, #f5e9f6 60%, #fff 100%);
+  display: flex; align-items: center; justify-content: center; color: #ef7aa6; font-size: 76px; font-weight: 700; }
+.k-mc-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 25%; }
+.k-mc-photo::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 46%; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, .55) 45%, rgba(255, 255, 255, .92) 78%, #fff 100%); }
+.k-mc-info { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 18px 84px; }
+.k-mc-name { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 11px; margin: 0; }
+.k-mc-name b { font-size: 30px; line-height: 1.12; font-weight: 800; letter-spacing: -.01em; overflow-wrap: anywhere; min-width: 0; }
+.k-mc-name .k-code { min-height: 26px; padding: 0 11px; font-size: 13px; background: rgba(242, 238, 250, .92); }
+.k-mc-info .k-pair { margin-top: 11px; }
+.k-mc-info .k-net-ic { width: 30px; height: 30px; border-radius: 10px; }
+.k-mc-info .k-net span { font-size: 14px; }
+.k-mc-info .k-camp { margin-top: 11px; font-size: 14px; }
+.k-mc-acts { position: absolute; left: 0; right: 0; bottom: 15px; display: flex; justify-content: center; gap: 22px; z-index: 2; pointer-events: none; }
+.k-mc-acts > * { pointer-events: auto; }
+.k-mc-done { position: absolute; left: 14px; right: 14px; bottom: 14px; z-index: 2; padding: 10px 13px; border-radius: 16px; font-size: 13.5px; line-height: 1.4; text-align: center; }
 .k-mc-done[data-s="approved"] { background: var(--k-approve); color: var(--k-green-ink); }
 .k-mc-done[data-s="rejected"] { background: var(--k-reject); color: var(--k-red-ink); }
 .k-mc-done[data-s="info_requested"] { background: var(--k-request); color: var(--k-amber-ink); }
-.k-mc-done[data-s="view"] { background: #fff; color: var(--k-muted); }
-.k-dots { display: flex; justify-content: center; align-items: center; gap: 8px; min-height: 16px; }
-.k-dots i { width: 8px; height: 8px; border-radius: 50%; background: #d9d5e3; transition: background-color .15s ease, transform .15s ease; }
+.k-mc-done[data-s="view"] { background: var(--k-surf); color: var(--k-muted); }
+.k-dots { display: flex; justify-content: center; align-items: center; gap: 10px; min-height: 20px; }
+.k-dots i { width: 10px; height: 10px; border-radius: 50%; background: #d9d5e3; transition: background-color .15s ease, transform .15s ease; }
 .k-dots i[data-on="true"] { background: var(--k-pink); transform: scale(1.15); }
 .k-mc-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 42px; height: 42px; border-radius: 50%; border: 0; background: #fff; box-shadow: var(--k-card); color: var(--k-ink);
   display: none; align-items: center; justify-content: center; cursor: pointer; z-index: 3; }
@@ -426,17 +428,17 @@ a.k-soc:hover { background: var(--k-sky); }
 .k-mc-nav:disabled { opacity: .35; cursor: default; }
 .k-mc-nav.prev { left: -58px; } .k-mc-nav.next { right: -58px; }
 @media (min-width: 900px) and (hover: hover) { .k-mc-nav { display: inline-flex; } }
-/* phones: cards about 74 % of the screen, 20 px from the edge, the next one peeking in (like the reference) */
+@media (max-width: 400px) { .k-mc-name b { font-size: 27px; } .k-mc-info { padding: 0 15px 80px; } }
+/* phones: card about 300 px wide, 20 px from the edge, the next one peeking in; the end padding lets the last card line up too */
 @media (max-width: 767px) {
   .k-mc-stage { max-width: none; width: auto; margin: 0 -20px; }
-  /* end padding lets the last card line up at 20 px too: screen − card − 20 px */
-  .k-mc-track { gap: 12px; padding: 2px max(84px, calc(100vw - 320px)) 10px 20px; scroll-padding-inline: 20px; }
+  .k-mc-track { gap: 12px; padding: 2px max(84px, calc(100vw - 320px)) 12px 20px; scroll-padding-inline: 20px; border-radius: 0; }
   .k-mc { flex-basis: min(300px, calc(100vw - 104px)); }
 }
 
 /* three round decision buttons (X · request · ✓) */
 .k-dec { display: flex; justify-content: center; gap: 22px; }
-.k-dbtn { width: 52px; height: 52px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; border: 0; cursor: pointer; transition: transform .12s ease; }
+.k-dbtn { width: 54px; height: 54px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; border: 0; cursor: pointer; transition: transform .12s ease; }
 .k-dbtn svg { width: 24px; height: 24px; stroke-width: 1.9; }
 .k-dbtn:active { transform: scale(.95); }
 .k-dbtn.x { background: var(--k-reject); color: #ef5b8b; }

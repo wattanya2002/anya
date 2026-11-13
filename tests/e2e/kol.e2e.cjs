@@ -37,7 +37,10 @@ async function layoutOk(page) {
       .slice(0, 3).map((el) => `${el.tagName}.${String(el.className).slice(0, 30)} right=${Math.round(el.getBoundingClientRect().right)}`);
     const small = [...document.querySelectorAll("input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]), select, textarea")]
       .filter((el) => el.offsetParent !== null && parseFloat(getComputedStyle(el).fontSize) < 16).map((el) => el.id || el.name);
-    return { overflow, wide, small };
+    // phones: the page itself never scrolls (one-screen shell); a taller document lets a navigation push the top bar off-screen
+    const tall = vw < 768 && document.querySelector(".kol") && document.documentElement.scrollHeight > document.documentElement.clientHeight + 1
+      ? [`document ${document.documentElement.scrollHeight}>${document.documentElement.clientHeight}`] : [];
+    return { overflow, wide, small, tall };
   });
 }
 
@@ -264,7 +267,7 @@ async function sendToCeo(page, id, pitch) {
     return new URL(page.url()).pathname.split("/")[4];
   };
   let cardA = "";
-  await check("D1 CEO queue → master card (framed photo inside the card, 20 px from the edge) → swipe to the next KOL; Detail Hub, Social & ผลงาน, comment saved", async () => {
+  await check("D1 CEO queue → master card (photo 70% / info, 20 px from the edge) → swipe to the next KOL; Detail Hub, Social & ผลงาน, comment saved", async () => {
     const p = ceo.page;
     await p.goto(`${BASE}/kol/ceo`);
     await p.locator("a.k-app", { hasText: A.creator }).waitFor();
@@ -276,10 +279,10 @@ async function sendToCeo(page, id, pitch) {
     const before = (await pill.textContent()).replace(/\s/g, "");
     const total = Number(before.split("/")[1]);
     assert.ok(total >= 3, `three pending cards (got ${before})`);
-    // owner reference (Nov 2026): the whole photo sits inside the card (square, ~62% of the card width); the card is 20 px from the screen edge
-    const box = await cur.locator(".k-mc-photo img, .k-mc-photo > span").first().boundingBox(), cardBox = await cur.boundingBox();
-    assert.ok(box.x >= cardBox.x && box.y >= cardBox.y && box.x + box.width <= cardBox.x + cardBox.width && box.y + box.height <= cardBox.y + cardBox.height, "photo is inside the card");
-    assert.ok(Math.abs(box.width - box.height) < 2 && Math.abs(box.width / cardBox.width - 0.62) < 0.03, `photo is a square ~62% of the card width (${(box.width / cardBox.width).toFixed(2)})`);
+    // approved look: photo 70% of the card; size per the owner's reference (Nov 2026): 2 : 3 card, 20 px from the screen edge
+    const box = await cur.locator(".k-mc-photo").boundingBox(), cardBox = await cur.boundingBox();
+    assert.ok(Math.abs(box.height / cardBox.height - 0.7) < 0.02, `photo is 70% of the card (${(box.height / cardBox.height).toFixed(2)})`);
+    assert.ok(Math.abs(cardBox.height / cardBox.width - 1.5) < 0.03, `card is 2 : 3 (${Math.round(cardBox.width)}×${Math.round(cardBox.height)})`);
     assert.ok(Math.abs(cardBox.x - 20) < 2, `card is 20 px from the screen edge (${cardBox.x})`);
     layout.push(["ceo master card iPhone", await layoutOk(p)]);
     // swipe (scroll the card track) → next KOL, counter and address follow; the page itself does not scroll sideways
@@ -567,7 +570,7 @@ async function sendToCeo(page, id, pitch) {
   });
 
   // ------------------------------------------------------------ Test F — Mobile layout
-  await check("F1 no horizontal overflow and no input zoom (375 / 390 / 430 px; public + back office)", async () => {
+  await check("F1 no horizontal overflow, no input zoom, phone page never taller than the screen (375 / 390 / 430 px; public + back office)", async () => {
     for (const w of [375, 390, 430]) {
       const ctx = await browser.newContext({ ...IPHONE, viewport: { width: w, height: 800 } });
       const p = await ctx.newPage();
@@ -581,7 +584,7 @@ async function sendToCeo(page, id, pitch) {
       }
       await m.ctx.close();
     }
-    const bad = layout.filter(([, r]) => r.overflow.length || r.wide.length || r.small.length);
+    const bad = layout.filter(([, r]) => r.overflow.length || r.wide.length || r.small.length || (r.tall ?? []).length);
     assert.equal(bad.length, 0, bad.map(([n, r]) => `${n}: ${JSON.stringify(r)}`).join(" ; "));
   });
 
